@@ -1,7 +1,7 @@
 const express = require('express');
 const { WebSocketServer } = require('ws');
 const http = require('http');
-const path = require('path');
+const mongoose = require('mongoose');
 const { v4: uuidv4 } = require('uuid');
 
 const app = express();
@@ -10,9 +10,28 @@ const wss = new WebSocketServer({ server });
 
 app.use(express.static('public'));
 
+// ============ ПОДКЛЮЧЕНИЕ К MONGODB ============
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/lumio';
+
+mongoose.connect(MONGODB_URI)
+    .then(() => console.log('✅ MongoDB подключена успешно!'))
+    .catch(err => console.error('❌ Ошибка подключения к MongoDB:', err));
+
+// Схема сообщения для базы данных
+const messageSchema = new mongoose.Schema({
+    id: String,
+    roomId: String,
+    from: String,
+    fromName: String,
+    text: String,
+    encrypted: Boolean,
+    timestamp: Number
+});
+const Message = mongoose.model('Message', messageSchema);
+// ==============================================
+
 const users = new Map();
 const rooms = new Map();
-const messages = new Map();
 
 wss.on('connection', (ws) => {
     const userId = uuidv4();
@@ -20,10 +39,10 @@ wss.on('connection', (ws) => {
     console.log('Connected: ' + userId);
     ws.send(JSON.stringify({ type: 'welcome', userId }));
     
-    ws.on('message', (data) => {
+    ws.on('message', async (data) => {
         try {
             const msg = JSON.parse(data);
-            handleMessage(ws, msg);
+            await handleMessage(ws, msg);
         } catch (e) {
             console.error('Error:', e);
         }
@@ -42,7 +61,7 @@ wss.on('connection', (ws) => {
     });
 });
 
-function handleMessage(ws, msg) {
+async function handleMessage(ws, msg) {
     const user = users.get(ws);
     switch (msg.type) {
         case 'set_name':
@@ -56,29 +75,40 @@ function handleMessage(ws, msg) {
             if (!rooms.has(roomId)) rooms.set(roomId, new Set());
             rooms.get(roomId).add(ws);
             ws.roomId = roomId;
+            
             const members = Array.from(rooms.get(roomId)).map(m => {
                 const u = users.get(m);
                 return { id: u.id, name: u.name, publicKey: u.publicKey };
             });
             ws.send(JSON.stringify({ type: 'room_members', members }));
             broadcast(roomId, { type: 'user_joined', user: { id: user.id, name: user.name } }, ws);
-            const history = (messages.get(roomId) || []).slice(-50);
+            
+            // ЗАГРУЖАЕМ ИСТОРИЮ ИЗ БАЗЫ ДАННЫХ (последние 50 сообщений)
+            const history = await Message.find({ roomId: roomId })
+                .sort({ timestamp: 1 })
+                .limit(50)
+                .lean();
             ws.send(JSON.stringify({ type: 'history', messages: history }));
             break;
+            
         case 'chat_message':
             const chatMsg = {
                 id: uuidv4(),
                 from: user.id,
                 fromName: user.name,
                 text: msg.text,
-                encrypted: msg.encrypted,
+                encrypted: msg.encrypted || false,
                 timestamp: Date.now(),
                 roomId: ws.roomId
             };
-            if (!messages.has(ws.roomId)) messages.set(ws.roomId, []);
-            messages.get(ws.roomId).push(chatMsg);
+            
+            // СОХРАНЯЕМ СООБЩЕНИЕ В БАЗУ ДАННЫХ
+            const newMessage = new Message(chatMsg);
+            await newMessage.save();
+            
             broadcast(ws.roomId, { type: 'chat_message', message: chatMsg });
             break;
+            
         case 'typing':
             broadcast(ws.roomId, { type: 'typing', userId: user.id, userName: user.name }, ws);
             break;
@@ -114,7 +144,7 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log('');
     console.log('========================================');
-    console.log('  LUMIO ULTIMATE SERVER');
+    console.log('  LUMIO ULTIMATE SERVER (WITH MONGODB)');
     console.log('========================================');
     console.log('  HTTP: http://localhost:' + PORT);
     console.log('  WS:   ws://localhost:' + PORT);
