@@ -1,1 +1,1 @@
-﻿   // Service Worker отключён
+﻿      const CACHE_NAME = 'lumio-v5';
