@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru">
-<head>
+<head>   <link rel="manifest" href="/manifest.json">
+   <meta name="theme-color" content="#16213e">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lumio Ultimate</title>
@@ -756,7 +757,13 @@
         <img id="modal-image" src="">
     </div>
 
-    <script src="app.js"></script>
+    <script src="app.js"></script>   <script>
+       if ('serviceWorker' in navigator) {
+           window.addEventListener('load', () => {
+               navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW error:', err));
+           });
+       }
+   </script>
 </body>
     <!-- Модальное окно Premium / Поддержка -->
     <div id="support-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('support-modal')">
