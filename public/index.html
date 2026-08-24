@@ -758,4 +758,36 @@
 
     <script src="app.js"></script>
 </body>
+    <!-- Модальное окно Premium / Поддержка -->
+    <div id="support-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('support-modal')">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal('support-modal')">&times;</button>
+            <div class="modal-title">💎 Lumio Premium</div>
+            <div class="modal-text">
+                Поддержите разработчика и получите эксклюзивные возможности:<br>
+                 Отключение рекламы<br>
+                🎨 Эксклюзивные темы оформления<br>
+                📁 Загрузка файлов до 100 MB<br>
+                🚀 Приоритетная поддержка
+            </div>
+            <button class="premium-btn" onclick="handlePremiumClick()">Поддержать за 199₽/мес</button>
+            <a id="privacy-link" onclick="openModal('privacy-modal')">Политика конфиденциальности</a>
+        </div>
+    </div>
+
+    <!-- Модальное окно Политики конфиденциальности -->
+    <div id="privacy-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('privacy-modal')">
+        <div class="modal-content" style="max-height: 80vh; overflow-y: auto;">
+            <button class="modal-close" onclick="closeModal('privacy-modal')">&times;</button>
+            <div class="modal-title">📄 Политика конфиденциальности</div>
+            <div class="modal-text">
+                <b>1. Сбор данных.</b> Приложение Lumio собирает только имя пользователя и пароль (в зашифрованном виде) для создания аккаунта.<br><br>
+                <b>2. Сообщения.</b> Текст сообщений и файлы хранятся на защищённых серверах и не передаются третьим лицам.<br><br>
+                <b>3. Уведомления.</b> Мы используем браузерные уведомления только с вашего явного разрешения.<br><br>
+                <b>4. Удаление данных.</b> Вы можете удалить свой аккаунт и все данные в любой момент, обратившись к администратору.<br><br>
+                <b>5. Контакты.</b> По всем вопросам: support@lumio-app.ru
+            </div>
+            <button class="premium-btn" style="background:#4caf50; color:#fff;" onclick="closeModal('privacy-modal')">Принять</button>
+        </div>
+    </div>
 </html>
