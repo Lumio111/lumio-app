@@ -1,11 +1,10 @@
-// === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ===
+// === LUMIO ULTIMATE APP ===
 let ws, currentUsername = '', currentUserId = '', currentMode = 'general';
 let currentDmPartner = null, currentRoomId = 'general', selectedFile = null;
 let allUsers = [], allRooms = [], onlineUsers = new Set();
 let audioCtx, editingMessageId = null, typingTimeout = null, isTyping = false;
 let peerConnection = null, localStream = null, incomingCallData = null;
 
-// === ИНИЦИАЛИЗАЦИЯ ===
 window.addEventListener('DOMContentLoaded', () => {
     if (localStorage.getItem('lumio_theme') === 'light') document.body.classList.add('light-theme');
     const token = localStorage.getItem('lumio_token');
@@ -16,9 +15,12 @@ window.addEventListener('DOMContentLoaded', () => {
         document.getElementById('chat-app').style.display = 'flex';
         connectWebSocket(token);
     }
+    setTimeout(() => {
+        const splash = document.getElementById('splash-screen');
+        if (splash) splash.classList.add('hidden');
+    }, 1500);
 });
 
-// === АВТОРИЗАЦИЯ ===
 function showTab(tab) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     event.target.classList.add('active');
@@ -77,7 +79,6 @@ function logout() {
     location.reload();
 }
 
-// === WEBSOCKET ===
 function connectWebSocket(token) {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     ws = new WebSocket(`${protocol}//${window.location.host}`);
@@ -158,14 +159,12 @@ function handleServerMessage(msg) {
     }
 }
 
-// === ИНТЕРФЕЙС И РЕЖИМЫ ===
 function switchMode(mode) {
     currentMode = mode;
     document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
     event.target.classList.add('active');
     document.getElementById('rooms-section').style.display = 'none';
     document.getElementById('users-section').style.display = 'block';
-    
     if (mode === 'general') {
         currentDmPartner = null; currentRoomId = 'general';
         document.getElementById('chat-title').textContent = 'Общий чат';
@@ -186,6 +185,26 @@ function switchMode(mode) {
 
 function loadGeneralChat() { ws.send(JSON.stringify({ type: 'join_room', roomId: 'general' })); }
 
+function getAvatarHTML(username, size = 42, isOnline = false) {
+    const gradients = [
+        'linear-gradient(135deg, #e94560 0%, #ff2e63 100%)',
+        'linear-gradient(135deg, #4caf50 0%, #8bc34a 100%)',
+        'linear-gradient(135deg, #2196f3 0%, #03a9f4 100%)',
+        'linear-gradient(135deg, #ff9800 0%, #ffc107 100%)',
+        'linear-gradient(135deg, #9c27b0 0%, #e91e63 100%)',
+        'linear-gradient(135deg, #00bcd4 0%, #009688 100%)',
+        'linear-gradient(135deg, #f44336 0%, #ff5722 100%)',
+        'linear-gradient(135deg, #3f51b5 0%, #2196f3 100%)'
+    ];
+    const initial = username ? username.charAt(0).toUpperCase() : '?';
+    let hash = 0;
+    for (let i = 0; i < username.length; i++) {
+        hash = username.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const gradient = gradients[Math.abs(hash) % gradients.length];
+    return `<div class="avatar" style="width:${size}px; height:${size}px; background:${gradient}; font-size:${size/2.3}px;">${initial}${isOnline ? '<div class="avatar-online-indicator"></div>' : ''}</div>`;
+}
+
 function renderUsersList() {
     const list = document.getElementById('users-list');
     list.innerHTML = '';
@@ -194,10 +213,22 @@ function renderUsersList() {
         const isActive = currentDmPartner && currentDmPartner.userId === user._id;
         const item = document.createElement('div');
         item.className = `user-item ${isActive ? 'active' : ''}`;
-        item.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;width:100%">
-            <div><div class="username">${user.username}</div><div class="status ${isOnline ? '' : 'offline'}">${isOnline ? '● онлайн' : '○ оффлайн'}</div></div>
-            ${isOnline ? `<button onclick="startCall('${user._id}', 'video'); event.stopPropagation();" style="background:#4caf50;border:none;color:#fff;padding:5px 10px;border-radius:4px;cursor:pointer;font-size:12px">📹</button>` : ''}
-        </div>`;
+        item.style.display = 'flex';
+        item.style.alignItems = 'center';
+        item.style.gap = '12px';
+        item.style.padding = '12px';
+        item.innerHTML = `
+            ${getAvatarHTML(user.username, 42, isOnline)}
+            <div style="flex:1; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <div class="username" style="font-weight:600;">${user.username}</div>
+                    <div class="status ${isOnline ? '' : 'offline'}" style="font-size:11px; margin-top:2px;">
+                        ${isOnline ? '● В сети' : '○ Оффлайн'}
+                    </div>
+                </div>
+                ${isOnline ? `<button onclick="startCall('${user._id}', 'video'); event.stopPropagation();" style="background:linear-gradient(135deg, #4caf50, #8bc34a); border:none; color:#fff; padding:8px; border-radius:50%; cursor:pointer; font-size:14px; box-shadow:0 2px 8px rgba(76,175,80,0.4); transition:all 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">📹</button>` : ''}
+            </div>
+        `;
         item.onclick = () => openDm(user._id, user.username);
         list.appendChild(item);
     });
@@ -238,7 +269,6 @@ function createRoom() {
     ws.send(JSON.stringify({ type: 'create_room', name: name, description: prompt('Описание:') || '' }));
 }
 
-// === ОТПРАВКА СООБЩЕНИЙ И ФАЙЛОВ ===
 document.getElementById('send-btn').addEventListener('click', sendMessage);
 document.getElementById('message-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
 document.getElementById('message-input').addEventListener('input', () => {
@@ -251,14 +281,12 @@ function sendMessage() {
     const input = document.getElementById('message-input');
     const text = input.value.trim();
     if (!text || !ws || ws.readyState !== 1) return;
-
     if (editingMessageId) {
         ws.send(JSON.stringify({ type: 'edit_message', messageId: editingMessageId, newText: text }));
         input.value = ''; editingMessageId = null;
         input.placeholder = 'Введите сообщение... (@username для упоминания)';
         return;
     }
-
     if (currentMode === 'general' || currentMode === 'rooms') {
         ws.send(JSON.stringify({ type: 'chat_message', text: text }));
     } else if (currentMode === 'dm' && currentDmPartner) {
@@ -303,31 +331,25 @@ function sendFile() {
     if (selectedFile.type.startsWith('image/')) fileType = 'image';
     else if (selectedFile.type.startsWith('video/')) fileType = 'video';
     else if (selectedFile.type.startsWith('audio/')) fileType = 'audio';
-    
     const data = { fileType, fileName: selectedFile.name, fileData: selectedFile.data, fileSize: selectedFile.size };
     if (currentMode === 'general' || currentMode === 'rooms') ws.send(JSON.stringify({ type: 'chat_message', ...data }));
     else if (currentMode === 'dm' && currentDmPartner) ws.send(JSON.stringify({ type: 'send_dm', toUserId: currentDmPartner.userId, ...data }));
     selectedFile = null;
 }
 
-// === ОТОБРАЖЕНИЕ СООБЩЕНИЙ ===
 function appendMessage(msg) {
     const messagesDiv = document.getElementById('messages');
     const emptyState = document.getElementById('empty-state');
     if (emptyState) emptyState.remove();
-    
     const isOwn = msg.from === currentUserId;
     const msgDiv = document.createElement('div');
     msgDiv.className = `message ${isOwn ? 'own' : ''}`;
     msgDiv.dataset.messageId = msg.id;
-    
     const time = new Date(msg.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
     let displayText = (msg.text || '').replace(/@(\w+)/g, '<span class="mention">@$1</span>');
-    
     let content = `<div class="meta">${msg.fromName}</div>`;
     if (displayText) content += `<div class="text">${displayText}</div>`;
     if (msg.edited) content += `<div class="edited">(изменено)</div>`;
-    
     if (msg.fileData) {
         content += '<div class="file-preview">';
         if (msg.fileType === 'image') content += `<img src="${msg.fileData}" onclick="openImageModal('${msg.fileData}')">`;
@@ -336,7 +358,6 @@ function appendMessage(msg) {
         else content += `<div class="file-info"><div class="icon">📄</div><div class="details"><div class="name">${msg.fileName}</div><div class="size">${(msg.fileSize/1024).toFixed(1)} KB</div></div><a href="${msg.fileData}" download="${msg.fileName}">Скачать</a></div>`;
         content += '</div>';
     }
-    
     if (msg.reactions && msg.reactions.length > 0) {
         content += '<div class="reactions">';
         const counts = {};
@@ -344,15 +365,12 @@ function appendMessage(msg) {
         Object.keys(counts).forEach(emoji => { content += `<span class="reaction-badge" onclick="addReaction('${msg.id}', '${emoji}')">${emoji} ${counts[emoji]}</span>`; });
         content += '</div>';
     }
-    
     content += `<div class="time">${time}</div>`;
     content += `<div class="actions"><button class="action-btn" onclick="showReactionPicker('${msg.id}')">😊</button>${isOwn ? `<button class="action-btn" onclick="startEdit('${msg.id}')">✏️</button><button class="action-btn" onclick="pinMessage('${msg.id}')">📌</button><button class="action-btn" onclick="deleteMessage('${msg.id}')">🗑️</button>` : ''}</div>`;
-    
     msgDiv.innerHTML = content;
     messagesDiv.appendChild(msgDiv);
 }
 
-// === ДЕЙСТВИЯ С СООБЩЕНИЯМИ ===
 function showReactionPicker(id) { const emoji = prompt('Эмодзи (👍 ❤️ 😂):'); if (emoji) addReaction(id, emoji); }
 function addReaction(id, emoji) { ws.send(JSON.stringify({ type: 'add_reaction', messageId: id, emoji })); }
 
@@ -404,7 +422,6 @@ function unpinMessage() { ws.send(JSON.stringify({ type: 'unpin_message', roomId
 function showPinnedMessage(msg) { document.getElementById('pinned-text').textContent = msg.text || '📎 Файл'; document.getElementById('pinned-message').style.display = 'block'; }
 function hidePinnedMessage() { document.getElementById('pinned-message').style.display = 'none'; }
 
-// === ИНДИКАТОР "ПЕЧАТАЕТ..." ===
 let typingUsers = new Map();
 function showTypingIndicator(username) { typingUsers.set(username, Date.now()); updateTypingDisplay(); }
 function hideTypingIndicator(userId) { const u = allUsers.find(x => x._id === userId); if (u) { typingUsers.delete(u.username); updateTypingDisplay(); } }
@@ -416,7 +433,6 @@ function updateTypingDisplay() {
     ind.style.display = 'block';
 }
 
-// === ПОИСК И ЭКСПОРТ ===
 function toggleSearch() { const s = document.getElementById('search-box'); s.style.display = s.style.display === 'none' ? 'block' : 'none'; if (s.style.display === 'block') document.getElementById('search-input').focus(); }
 function searchMessages(e) { if (e.key === 'Enter') { const q = document.getElementById('search-input').value.trim(); if (q) ws.send(JSON.stringify({ type: 'search_messages', query: q })); } }
 function showSearchResults(msgs) { const d = document.getElementById('messages'); d.innerHTML = ''; if (msgs.length === 0) { d.innerHTML = '<div id="empty-state">Ничего не найдено</div>'; return; } msgs.forEach(m => appendMessage(m)); }
@@ -428,7 +444,6 @@ function downloadChatExport(msgs) {
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `lumio_${new Date().toISOString().slice(0,10)}.txt`; a.click();
 }
 
-// === ЭМОДЗИ, ТЕМА, УВЕДОМЛЕНИЯ ===
 function toggleEmojiPicker() { const p = document.getElementById('emoji-picker'); p.style.display = p.style.display === 'none' ? 'block' : 'none'; }
 function addEmoji(emoji) { document.getElementById('message-input').value += emoji; document.getElementById('message-input').focus(); document.getElementById('emoji-picker').style.display = 'none'; }
 function toggleTheme() { document.body.classList.toggle('light-theme'); localStorage.setItem('lumio_theme', document.body.classList.contains('light-theme') ? 'light' : 'dark'); }
@@ -452,7 +467,6 @@ function openImageModal(src) { document.getElementById('modal-image').src = src;
 function closeImageModal() { document.getElementById('image-modal').style.display = 'none'; }
 function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
 
-// === ВИДЕОЗВОНКИ (WebRTC) ===
 const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 function startCall(targetId, callType = 'video') {
     navigator.mediaDevices.getUserMedia({ video: callType === 'video', audio: true }).then(stream => {
@@ -505,87 +519,4 @@ function hideCallModal() {
     document.getElementById('local-video').srcObject = null;
     document.getElementById('remote-video').srcObject = null;
     incomingCallData = null;
-}// === ДИЗАЙН И UX УЛУЧШЕНИЯ ===
-
-// 1. Скрываем Splash Screen после загрузки
-window.addEventListener('load', () => {
-    setTimeout(() => {
-        const splash = document.getElementById('splash-screen');
-        if (splash) splash.classList.add('hidden');
-    }, 1500); // Показываем 1.5 секунды
-});
-
-// 2. Функция для генерации цвета и инициалов
-    }
-function getAvatarHTML(username, size = 42, isOnline = false) {
-    const gradients = [
-        'linear-gradient(135deg, #e94560 0%, #ff2e63 100%)',
-        'linear-gradient(135deg, #4caf50 0%, #8bc34a 100%)',
-        'linear-gradient(135deg, #2196f3 0%, #03a9f4 100%)',
-        'linear-gradient(135deg, #ff9800 0%, #ffc107 100%)',
-        'linear-gradient(135deg, #9c27b0 0%, #e91e63 100%)',
-        'linear-gradient(135deg, #00bcd4 0%, #009688 100%)',
-        'linear-gradient(135deg, #f44336 0%, #ff5722 100%)',
-        'linear-gradient(135deg, #3f51b5 0%, #2196f3 100%)'
-    ];
-    const initial = username ? username.charAt(0).toUpperCase() : '?';
-    let hash = 0;
-    for (let i = 0; i < username.length; i++) {
-        hash = username.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const gradient = gradients[Math.abs(hash) % gradients.length];
-    return `<div class="avatar" style="width:${size}px; height:${size}px; background:${gradient}; font-size:${size/2.3}px;">${initial}${isOnline ? '<div class="avatar-online-indicator"></div>' : ''}</div>`;
-}    const color = colors[Math.abs(hash) % colors.length];
-    
-    return `<div class="avatar" style="width:${size}px; height:${size}px; background:${color}; font-size:${size/2.5}px;">${initial}</div>`;
 }
-
-// 3. Обновляем отображение пользователей с аватарками
-   function renderUsersList() {
-    const list = document.getElementById('users-list');
-    list.innerHTML = '';
-    allUsers.forEach(user => {
-        const isOnline = onlineUsers.has(user._id);
-        const isActive = currentDmPartner && currentDmPartner.userId === user._id;
-        const item = document.createElement('div');
-        item.className = `user-item ${isActive ? 'active' : ''}`;
-        item.style.display = 'flex';
-        item.style.alignItems = 'center';
-        item.style.gap = '12px';
-        item.style.padding = '12px';
-        item.innerHTML = `
-            ${getAvatarHTML(user.username, 42, isOnline)}
-            <div style="flex:1; display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                    <div class="username" style="font-weight:600;">${user.username}</div>
-                    <div class="status ${isOnline ? '' : 'offline'}" style="font-size:11px; margin-top:2px;">
-                        ${isOnline ? '● В сети' : '○ Оффлайн'}
-                    </div>
-                </div>
-                ${isOnline ? `<button onclick="startCall('${user._id}', 'video'); event.stopPropagation();" style="background:linear-gradient(135deg, #4caf50, #8bc34a); border:none; color:#fff; padding:8px; border-radius:50%; cursor:pointer; font-size:14px; box-shadow:0 2px 8px rgba(76,175,80,0.4); transition:all 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">📹</button>` : ''}
-            </div>
-        `;
-        item.onclick = () => openDm(user._id, user.username);
-        list.appendChild(item);
-    });
-}     item.style.display = 'flex';
-        item.style.alignItems = 'center';
-        item.style.gap = '12px';
-        item.innerHTML = `
-            ${getAvatarHTML(user.username, 40)}
-            <div style="flex:1; display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                    <div class="username">${user.username}</div>
-                    <div class="status ${isOnline ? '' : 'offline'}">${isOnline ? '● онлайн' : '○ оффлайн'}</div>
-                </div>
-                ${isOnline ? `<button onclick="startCall('${user._id}', 'video'); event.stopPropagation();" style="background:#4caf50;border:none;color:#fff;padding:6px;border-radius:50%;cursor:pointer;font-size:14px">📹</button>` : ''}
-            </div>
-        `;
-        item.onclick = () => openDm(user._id, user.username);
-        list.appendChild(item);
-    });
-}
-
-// 4. Добавляем аватарки к сообщениям (опционально, для красоты)
-// Найдите в коде функцию appendMessage и добавьте аватарку, если хотите, 
-// но пока оставим как есть, чтобы не перегружать код.
