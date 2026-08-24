@@ -1,1358 +1,252 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Lumio Ultimate</title><link rel="icon" type="image/png" href="icons/icon-192.png">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0e1621">
-<link rel="icon" href="icons/icon-192.png">
-<style>
-:root,[data-theme="dark"]{--bg-main:#0e1621;--bg-surface:#17212b;--bg-hover:#202b36;--bg-elevated:#232e3c;--bg-message-own:#2b5278;--bg-message-other:#182533;--border-color:rgba(255,255,255,0.06);--text-primary:#f5f5f5;--text-secondary:#7d8b99;--accent-cyan:#00e5ff;--accent-purple:#9d00ff;--accent-gradient:linear-gradient(135deg,var(--accent-cyan),var(--accent-purple));--online-green:#00d26a;--danger:#ff3b30;--success:#34c759;}
-[data-theme="light"]{--bg-main:#fff;--bg-surface:#f4f4f5;--bg-hover:#e9e9ea;--bg-elevated:#fff;--bg-message-own:#effdde;--bg-message-other:#fff;--border-color:rgba(0,0,0,0.08);--text-primary:#000;--text-secondary:#707579;}
-*{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg-main);color:var(--text-primary);line-height:1.4;overflow:hidden;height:100vh;}
-.app{display:grid;grid-template-columns:380px 1fr;height:100vh;}
-.left-panel{background:var(--bg-surface);border-right:1px solid var(--border-color);display:flex;flex-direction:column;overflow:hidden;}
-.left-header{padding:0.8rem 1rem;display:flex;align-items:center;gap:0.8rem;border-bottom:1px solid var(--border-color);}
-.menu-btn{width:40px;height:40px;border-radius:50%;background:transparent;border:none;cursor:pointer;font-size:1.2rem;color:var(--text-secondary);}
-.menu-btn:hover{background:var(--bg-hover);}
-.search-input{flex:1;padding:0.6rem 1rem;background:var(--bg-hover);border:none;border-radius:20px;color:var(--text-primary);font-size:0.9rem;outline:none;}
-.connection-status{display:flex;align-items:center;gap:0.4rem;font-size:0.75rem;padding:0.4rem 1rem;border-bottom:1px solid var(--border-color);}
-.status-dot{width:8px;height:8px;border-radius:50%;background:var(--danger);}
-.status-dot.connected{background:var(--online-green);}
-.status-dot.connecting{background:#ff9500;animation:pulse 1s infinite;}
-@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
-.chat-list{flex:1;overflow-y:auto;}
-.chat-item{display:flex;gap:0.8rem;padding:0.7rem 1rem;cursor:pointer;border-bottom:1px solid var(--border-color);}
-.chat-item:hover{background:var(--bg-hover);}
-.chat-item.active{background:var(--bg-message-own);}
-.chat-avatar{width:54px;height:54px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;font-size:1.2rem;position:relative;background:var(--accent-gradient);}
-.online-dot{position:absolute;bottom:2px;right:2px;width:12px;height:12px;background:var(--online-green);border:2px solid var(--bg-surface);border-radius:50%;}
-.chat-info{flex:1;min-width:0;}
-.chat-top{display:flex;justify-content:space-between;margin-bottom:0.2rem;}
-.chat-name{font-weight:600;font-size:0.95rem;display:flex;align-items:center;gap:0.3rem;}
-.e2ee-icon{font-size:0.75rem;color:var(--success);}
-.chat-time{font-size:0.75rem;color:var(--text-secondary);}
-.chat-preview{font-size:0.85rem;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.right-panel{display:flex;flex-direction:column;background:var(--bg-main);position:relative;}
-.right-header{padding:0.8rem 1.5rem;background:var(--bg-surface);border-bottom:1px solid var(--border-color);display:flex;align-items:center;gap:1rem;}
-.right-header-info{flex:1;}
-.right-header-name{font-weight:600;font-size:1rem;display:flex;align-items:center;gap:0.3rem;}
-.right-header-status{font-size:0.8rem;color:var(--text-secondary);display:flex;align-items:center;gap:0.4rem;}
-.right-header-status.online{color:var(--online-green);}
-.right-header-status.typing{color:var(--accent-cyan);font-style:italic;}
-.header-actions{display:flex;gap:0.3rem;}
-.messages-area{flex:1;overflow-y:auto;padding:1rem 1.5rem;display:flex;flex-direction:column;gap:0.3rem;}
-.message{max-width:65%;display:flex;flex-direction:column;animation:msgAppear 0.3s ease;}
-@keyframes msgAppear{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
-.message.own{align-self:flex-end;}
-.message.other{align-self:flex-start;}
-.message-bubble{padding:0.6rem 0.9rem;border-radius:12px;font-size:0.9rem;line-height:1.4;}
-.message.own .message-bubble{background:var(--bg-message-own);border-bottom-right-radius:4px;}
-.message.other .message-bubble{background:var(--bg-message-other);border-bottom-left-radius:4px;}
-.message-sender{font-size:0.75rem;color:var(--accent-cyan);font-weight:600;margin-bottom:0.2rem;}
-.message-text{margin-bottom:0.3rem;word-wrap:break-word;}
-.message-time{font-size:0.7rem;color:var(--text-secondary);display:flex;align-items:center;gap:0.3rem;justify-content:flex-end;}
-.message.own .message-time{color:rgba(255,255,255,0.6);}
-.encrypted-badge{font-size:0.65rem;color:var(--success);}
-.input-area{padding:0.8rem 1.5rem;background:var(--bg-surface);border-top:1px solid var(--border-color);display:flex;gap:0.5rem;align-items:flex-end;}
-.input-btn{width:40px;height:40px;border-radius:50%;background:transparent;border:none;cursor:pointer;font-size:1.2rem;color:var(--text-secondary);}
-.input-btn:hover{background:var(--bg-hover);color:var(--text-primary);}
-.message-input{flex:1;padding:0.7rem 1rem;background:var(--bg-hover);border:none;border-radius:20px;color:var(--text-primary);font-size:0.9rem;outline:none;resize:none;max-height:120px;font-family:inherit;}
-.send-btn{width:40px;height:40px;border-radius:50%;background:var(--accent-gradient);border:none;cursor:pointer;font-size:1.2rem;color:#fff;}
-.toast-container{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:3000;display:flex;flex-direction:column;gap:0.5rem;pointer-events:none;}
-.toast{background:var(--bg-elevated);border:1px solid var(--border-color);border-radius:12px;padding:0.8rem 1.2rem;display:flex;align-items:center;gap:0.6rem;box-shadow:0 10px 40px rgba(0,0,0,0.4);animation:toastIn 0.3s,toastOut 0.3s 2.7s forwards;min-width:250px;pointer-events:auto;}
-@keyframes toastIn{from{opacity:0;transform:translateY(-20px);}to{opacity:1;transform:translateY(0);}}
-@keyframes toastOut{to{opacity:0;transform:translateY(-20px);}}
-.toast.success{border-left:3px solid var(--success);}
-.toast.error{border-left:3px solid var(--danger);}
-.toast.info{border-left:3px solid var(--accent-cyan);}
-@media (max-width:768px){.app{grid-template-columns:1fr;}.right-panel{display:none;}.right-panel.active{display:flex;}.left-panel.hidden{display:none;}.message{max-width:85%;}}
-::-webkit-scrollbar{width:6px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--bg-hover);border-radius:3px;}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lumio Ultimate</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #1a1a2e; color: #fff; display: flex; flex-direction: column; height: 100vh; }
+        
+        /* Стили для экрана авторизации */
+        #auth-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #16213e; display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .auth-box { background: #0f3460; padding: 30px; border-radius: 12px; width: 300px; text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+        .auth-box h2 { margin-top: 0; color: #e94560; }
+        .auth-tabs { display: flex; margin-bottom: 20px; }
+        .tab-btn { flex: 1; padding: 10px; background: transparent; border: none; color: #aaa; cursor: pointer; border-bottom: 2px solid transparent; font-weight: bold; }
+        .tab-btn.active { color: #fff; border-bottom: 2px solid #e94560; }
+        .auth-box input { width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 6px; background: #1a1a2e; color: #fff; box-sizing: border-box; }
+        .auth-box button { width: 100%; padding: 12px; margin-top: 15px; background: #e94560; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px; }
+        .auth-box button:hover { background: #ff2e63; }
+        .error-msg { color: #ff6b6b; font-size: 14px; margin-top: 10px; min-height: 20px; }
+
+        /* Стили чата (скрыты до входа) */
+        #chat-app { display: none; flex: 1; flex-direction: column; height: 100%; }
+        header { background: #0f3460; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
+        #messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .message { background: #0f3460; padding: 10px 15px; border-radius: 12px; max-width: 80%; align-self: flex-start; }
+        .message.own { background: #e94560; align-self: flex-end; }
+        .message .meta { font-size: 12px; opacity: 0.7; margin-bottom: 4px; }
+        #input-area { padding: 15px; background: #0f3460; display: flex; gap: 10px; }
+        #message-input { flex: 1; padding: 12px; border: none; border-radius: 6px; background: #1a1a2e; color: #fff; }
+        #send-btn { padding: 12px 20px; background: #e94560; color: #fff; border: none; border-radius: 6px; cursor: pointer; }
+        #logout-btn { background: transparent; border: 1px solid #e94560; color: #e94560; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+    </style>
 </head>
-<body data-theme="dark">
+<body>
 
-<div class="toast-container" id="toastContainer"></div>
+    <!-- Экран Входа / Регистрации -->
+    <div id="auth-overlay">
+        <div class="auth-box">
+            <h2>🔐 Lumio</h2>
+            <div class="auth-tabs">
+                <button class="tab-btn active" onclick="showTab('login')">Вход</button>
+                <button class="tab-btn" onclick="showTab('register')">Регистрация</button>
+            </div>
+            
+            <form id="login-form">
+                <input type="text" id="login-username" placeholder="Имя пользователя" required>
+                <input type="password" id="login-password" placeholder="Пароль" required>
+                <button type="submit">Войти</button>
+                <p id="login-error" class="error-msg"></p>
+            </form>
 
-<div class="app">
-    <div class="left-panel" id="leftPanel">
-        <div class="left-header">
-            <button class="menu-btn" onclick="openSettings()">☰</button>
-            <input type="text" class="search-input" placeholder="Поиск..." id="searchInput">
-            <button class="menu-btn" onclick="toggleTheme()" id="themeBtn">🌙</button>
+            <form id="register-form" style="display: none;">
+                <input type="text" id="reg-username" placeholder="Придумайте имя" required>
+                <input type="password" id="reg-password" placeholder="Придумайте пароль" required>
+                <button type="submit">Зарегистрироваться</button>
+                <p id="reg-error" class="error-msg"></p>
+            </form>
         </div>
-        <div class="connection-status">
-            <div class="status-dot connecting" id="connectionDot"></div>
-            <span id="connectionText">Подключение...</span>
-        </div>
-        <div class="chat-list" id="chatList"></div>
     </div>
 
-    <div class="right-panel" id="rightPanel">
-        <div class="right-header">
-            <button class="menu-btn" onclick="goBack()" id="backBtn" style="display:none;">←</button>
-            <div class="chat-avatar" id="chatAvatar" style="width:40px;height:40px;font-size:1rem;">L</div>
-            <div class="right-header-info">
-                <div class="right-header-name" id="chatHeaderName">Lumio Chat <span class="e2ee-icon">🔒</span></div>
-                <div class="right-header-status" id="chatHeaderStatus"><span id="statusText">0 участников</span></div>
-            </div>
-            <div class="header-actions">
-                <button class="menu-btn" onclick="startCall('audio')" title="Аудиозвонок">📞</button>
-                <button class="menu-btn" onclick="startCall('video')" title="Видеозвонок">📹</button>
-                <button class="menu-btn" onclick="sendLocation()" title="Геолокация">📍</button>
-            </div>
-        </div>
-        <div class="messages-area" id="messagesArea"></div>
-        <div class="input-area">
-            <button class="input-btn" onclick="toggleEmoji()">😊</button>
-            <textarea class="message-input" placeholder="Сообщение (E2EE 🔒)" rows="1" id="messageInput"></textarea>
-            <button class="send-btn" onclick="sendMessage()">➤</button>
+    <!-- Основное приложение чата -->
+    <div id="chat-app">
+        <header>
+            <span id="current-user-display">Гость</span>
+            <button id="logout-btn" onclick="logout()">Выйти</button>
+        </header>
+        <div id="messages"></div>
+        <div id="input-area">
+            <input type="text" id="message-input" placeholder="Введите сообщение...">
+            <button id="send-btn">➤</button>
         </div>
     </div>
-</div>
 
-<script>
-   const isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-   const WS_URL = isLocalhost ? 'ws://localhost:3000' : 'wss://' + location.hostname;
-const CURRENT_ROOM = 'main';
+    <script>
+        let ws;
+        let currentUsername = '';
+        let currentUserId = '';
 
-let ws = null;
-let userId = null;
-let userName = localStorage.getItem('lumio-name') || 'User_' + Math.random().toString(36).slice(2, 8);
-let members = [];
-let cryptoKeys = null;
-let peerPublicKeys = new Map();
-
-function showToast(text, type = 'info') {
-    const c = document.getElementById('toastContainer');
-    const t = document.createElement('div');
-    t.className = `toast ${type}`;
-    const icons = { success: '✓', error: '✕', info: 'ℹ' };
-    t.innerHTML = `<div>${icons[type]}</div><div style="flex:1;">${text}</div>`;
-    c.appendChild(t);
-    setTimeout(() => t.remove(), 3000);
-}
-
-async function initCrypto() {
-    const keyPair = await crypto.subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, false, ['deriveKey', 'deriveBits']);
-    cryptoKeys = keyPair;
-    const publicKeyRaw = await crypto.subtle.exportKey('raw', keyPair.publicKey);
-    ws.send(JSON.stringify({ type: 'set_public_key', publicKey: arrayBufferToBase64(publicKeyRaw) }));
-    console.log('🔐 E2EE keys generated');
-}
-
-async function deriveSharedKey(peerPublicKeyB64) {
-    const peerPublicKeyRaw = base64ToArrayBuffer(peerPublicKeyB64);
-    const peerPublicKey = await crypto.subtle.importKey('raw', peerPublicKeyRaw, { name: 'ECDH', namedCurve: 'P-256' }, false, []);
-    const sharedBits = await crypto.subtle.deriveBits({ name: 'ECDH', public: peerPublicKey }, cryptoKeys.privateKey, 256);
-    return await crypto.subtle.importKey('raw', sharedBits, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
-}
-
-async function encryptMessage(text, sharedKey) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(text);
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, sharedKey, data);
-    return { iv: arrayBufferToBase64(iv.buffer), data: arrayBufferToBase64(encrypted) };
-}
-
-async function decryptMessage(encrypted, sharedKey) {
-    const iv = base64ToArrayBuffer(encrypted.iv);
-    const data = base64ToArrayBuffer(encrypted.data);
-    const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: new Uint8Array(iv) }, sharedKey, data);
-    return new TextDecoder().decode(decrypted);
-}
-
-function arrayBufferToBase64(buffer) {
-    const bytes = new Uint8Array(buffer);
-    let binary = '';
-    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
-    return btoa(binary);
-}
-
-function base64ToArrayBuffer(base64) {
-    const binary = atob(base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    return bytes.buffer;
-}
-
-function connectWebSocket() {
-    document.getElementById('connectionDot').className = 'status-dot connecting';
-    document.getElementById('connectionText').textContent = 'Подключение...';
-    ws = new WebSocket(WS_URL);
-    
-    ws.onopen = async () => {
-        document.getElementById('connectionDot').className = 'status-dot connected';
-        document.getElementById('connectionText').textContent = 'Подключено ✓';
-        showToast('🌐 Подключено к серверу', 'success');
-        ws.send(JSON.stringify({ type: 'set_name', name: userName }));
-        ws.send(JSON.stringify({ type: 'join_room', roomId: CURRENT_ROOM }));
-        await initCrypto();
-    };
-    
-    ws.onmessage = async (event) => {
-        const msg = JSON.parse(event.data);
-        await handleServerMessage(msg);
-    };
-    
-    ws.onclose = () => {
-        document.getElementById('connectionDot').className = 'status-dot';
-        document.getElementById('connectionText').textContent = 'Отключено';
-        showToast('❌ Соединение потеряно', 'error');
-        setTimeout(connectWebSocket, 3000);
-    };
-}
-
-async function handleServerMessage(msg) {
-    switch (msg.type) {
-        case 'welcome':
-            userId = msg.userId;
-            break;
-        case 'room_members':
-            members = msg.members;
-            document.getElementById('statusText').textContent = `${members.length} участников`;
-            renderChatList();
-            for (const member of members) {
-                if (member.id !== userId && member.publicKey) {
-                    const sharedKey = await deriveSharedKey(member.publicKey);
-                    peerPublicKeys.set(member.id, sharedKey);
-                }
+        // Проверка при загрузке страницы: есть ли сохраненный вход
+        window.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('lumio_token');
+            const username = localStorage.getItem('lumio_username');
+            
+            if (token && username) {
+                currentUsername = username;
+                document.getElementById('current-user-display').textContent = username;
+                document.getElementById('auth-overlay').style.display = 'none';
+                document.getElementById('chat-app').style.display = 'flex';
+                connectWebSocket(token);
             }
-            break;
-        case 'user_joined':
-            members.push(msg.user);
-            document.getElementById('statusText').textContent = `${members.length} участников`;
-            renderChatList();
-            showToast(`👋 ${msg.user.name} присоединился`, 'info');
-            break;
-        case 'user_left':
-            members = members.filter(m => m.id !== msg.userId);
-            document.getElementById('statusText').textContent = `${members.length} участников`;
-            renderChatList();
-            break;
-        case 'history':
-            msg.messages.forEach(m => addMessageToUI(m, false));
-            break;
-        case 'chat_message':
-            await addMessageToUI(msg.message, true);
-            break;
-        case 'typing':
-            showTypingIndicator(msg.userName);
-            break;
-    }
-}
-
-async function sendMessage() {
-    const input = document.getElementById('messageInput');
-    const text = input.value.trim();
-    if (!text || !ws || ws.readyState !== 1) return;
-    
-    let encrypted = null;
-    const firstPeer = members.find(m => m.id !== userId);
-    if (firstPeer && peerPublicKeys.has(firstPeer.id)) {
-        encrypted = await encryptMessage(text, peerPublicKeys.get(firstPeer.id));
-    }
-    
-    ws.send(JSON.stringify({ type: 'chat_message', text, encrypted }));
-    input.value = '';
-}
-
-async function addMessageToUI(msg, animate = true) {
-    const area = document.getElementById('messagesArea');
-    const isOwn = msg.from === userId;
-    let displayText = msg.text;
-    
-    if (msg.encrypted && peerPublicKeys.has(msg.from)) {
-        try {
-            displayText = await decryptMessage(msg.encrypted, peerPublicKeys.get(msg.from));
-        } catch (e) {
-            displayText = '[Ошибка дешифрования]';
-        }
-    }
-    
-    const div = document.createElement('div');
-    div.className = `message ${isOwn ? 'own' : 'other'}`;
-    if (!animate) div.style.animation = 'none';
-    
-    const time = new Date(msg.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-    let content = '';
-    if (!isOwn) content += `<div class="message-sender">${msg.fromName}</div>`;
-    content += `<div class="message-text">${escapeHtml(displayText)}</div>`;
-    content += `<div class="message-time">${time} <span class="encrypted-badge">🔒 E2EE</span></div>`;
-    
-    div.innerHTML = `<div class="message-bubble">${content}</div>`;
-    area.appendChild(div);
-    area.scrollTop = area.scrollHeight;
-}
-
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-function showTypingIndicator(name) {
-    const status = document.getElementById('statusText');
-    const original = status.textContent;
-    status.textContent = `${name} печатает...`;
-    document.getElementById('chatHeaderStatus').className = 'right-header-status typing';
-    clearTimeout(window.typingTimeout);
-    window.typingTimeout = setTimeout(() => {
-        status.textContent = original;
-        document.getElementById('chatHeaderStatus').className = 'right-header-status';
-    }, 2000);
-}
-
-function renderChatList() {
-    const list = document.getElementById('chatList');
-    list.innerHTML = `
-        <div class="chat-item active" onclick="openChat('Lumio Chat')">
-            <div class="chat-avatar">L</div>
-            <div class="chat-info">
-                <div class="chat-top">
-                    <div class="chat-name">Lumio Chat <span class="e2ee-icon">🔒</span></div>
-                    <div class="chat-time">Сейчас</div>
-                </div>
-                <div class="chat-preview">${members.length} участников онлайн</div>
-            </div>
-        </div>
-    ` + members.filter(m => m.id !== userId).map(m => `
-        <div class="chat-item" onclick="openChat('${m.name}')">
-            <div class="chat-avatar">${m.name[0].toUpperCase()}<div class="online-dot"></div></div>
-            <div class="chat-info">
-                <div class="chat-top">
-                    <div class="chat-name">${m.name} <span class="e2ee-icon">🔒</span></div>
-                </div>
-                <div class="chat-preview">Личные сообщения</div>
-            </div>
-        </div>
-    `).join('');
-}
-
-function openChat(name) {
-    document.getElementById('chatHeaderName').innerHTML = `${name} <span class="e2ee-icon">🔒</span>`;
-    if (window.innerWidth <= 768) {
-        document.getElementById('leftPanel').classList.add('hidden');
-        document.getElementById('rightPanel').classList.add('active');
-        document.getElementById('backBtn').style.display = 'block';
-    }
-}
-
-function goBack() {
-    document.getElementById('leftPanel').classList.remove('hidden');
-    document.getElementById('rightPanel').classList.remove('active');
-    document.getElementById('backBtn').style.display = 'none';
-}
-
-function sendLocation() {
-    if (!navigator.geolocation) {
-        showToast('⚠ Геолокация не поддерживается', 'error');
-        return;
-    }
-    showToast('📍 Определяем местоположение...', 'info');
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-        const { latitude, longitude } = pos.coords;
-        ws.send(JSON.stringify({ type: 'chat_message', text: `[Местоположение: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}]`, location: { lat: latitude, lng: longitude } }));
-    }, () => showToast('⚠ Не удалось получить местоположение', 'error'));
-}
-
-function startCall(callType) {
-    showToast(`📞 ${callType === 'video' ? 'Видео' : 'Аудио'}звонок (демо)`, 'info');
-}
-
-function toggleEmoji() {
-    const emojis = ['😀','😂','😍','🥰','😎','🤔','😢','😡','👍','👎','❤️','🔥','🎉','🚀','💯','✨','🙏','💪','👏','🎁'];
-    const input = document.getElementById('messageInput');
-    input.value += emojis[Math.floor(Math.random() * emojis.length)];
-    input.focus();
-}
-
-function toggleTheme() {
-    const body = document.body;
-    const btn = document.getElementById('themeBtn');
-    const current = body.getAttribute('data-theme');
-    const next = current === 'dark' ? 'light' : 'dark';
-    body.setAttribute('data-theme', next);
-    btn.textContent = next === 'dark' ? '🌙' : '☀️';
-    localStorage.setItem('lumio-theme', next);
-}
-
-function openSettings() {
-    const name = prompt('Ваше имя:', userName);
-    if (name) {
-        userName = name;
-        localStorage.setItem('lumio-name', userName);
-        if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'set_name', name: userName }));
-        showToast('✓ Имя сохранено', 'success');
-    }
-}
-
-document.getElementById('messageInput').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        sendMessage();
-    } else if (ws && ws.readyState === 1) {
-        ws.send(JSON.stringify({ type: 'typing' }));
-    }
-});
-
-(function() {
-    const saved = localStorage.getItem('lumio-theme');
-    if (saved) {
-        document.body.setAttribute('data-theme', saved);
-        document.getElementById('themeBtn').textContent = saved === 'dark' ? '🌙' : '☀️';
-    }
-})();
-
-connectWebSocket();
-showToast('🌟 Lumio Ultimate загружается...', 'info');
-</script>
-<<!-- Кнопка AI -->
-<style>
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:1000;padding:1rem;}
-.modal-overlay.active{display:flex;}
-.modal{background:var(--bg-surface);border-radius:16px;width:100%;max-width:500px;max-height:85vh;overflow:hidden;display:flex;flex-direction:column;}
-.modal-header{padding:1rem 1.5rem;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center;}
-.modal-header h3{font-size:1.1rem;font-weight:700;}
-.modal-close{background:none;border:none;color:var(--text-primary);font-size:1.5rem;cursor:pointer;}
-.modal-body{padding:1.5rem;overflow-y:auto;flex:1;}
-.form-input{width:100%;padding:0.7rem 0.9rem;background:var(--bg-hover);border:1px solid var(--border-color);border-radius:10px;color:var(--text-primary);font-size:0.9rem;outline:none;font-family:inherit;}
-.btn-primary{padding:0.7rem 1.5rem;background:var(--accent-gradient);border:none;border-radius:20px;color:#fff;font-weight:600;cursor:pointer;}
-.ai-message{margin-bottom:0.8rem;padding:0.6rem;border-radius:10px;font-size:0.9rem;}
-.ai-message.user{background:var(--bg-message-own);margin-left:2rem;}
-.ai-message.bot{background:var(--bg-message-other);margin-right:2rem;}
-.ai-message strong{font-size:0.8rem;color:var(--accent-cyan);}
-</style>
-
-<button id="aiButton" class="menu-btn" onclick="openAI()" title="AI-ассистент" style="position:fixed;bottom:80px;right:20px;width:50px;height:50px;background:var(--accent-gradient);border-radius:50%;font-size:1.5rem;z-index:100;border:none;cursor:pointer;">🤖</button>
-
-<div class="modal-overlay" id="modal-ai" onclick="if(event.target===this)closeModal('modal-ai')">
-    <div class="modal">
-        <div class="modal-header">
-            <h3>🤖 AI-ассистент Lumio</h3>
-            <button class="modal-close" onclick="closeModal('modal-ai')">✕</button>
-        </div>
-        <div class="modal-body">
-            <div id="aiChat" style="max-height:400px;overflow-y:auto;margin-bottom:1rem;padding:0.5rem;background:var(--bg-hover);border-radius:10px;min-height:100px;">
-                <div style="color:var(--text-secondary);text-align:center;padding:2rem;">
-                    👋 Привет! Я бот Lumio.<br>Напиши <b>привет</b>, <b>/шутка</b>, <b>/время</b> или <b>/помощь</b>
-                </div>
-            </div>
-            <div style="display:flex;gap:0.5rem;">
-                <input type="text" class="form-input" id="aiInput" placeholder="Напиши что-нибудь..." onkeypress="if(event.key==='Enter')askAI()">
-                <button class="btn-primary" onclick="askAI()" style="padding:0.7rem 1rem;">➤</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-function openAI() {
-    document.getElementById('modal-ai').classList.add('active');
-    document.getElementById('aiInput').focus();
-}
-
-function closeModal(id) {
-    document.getElementById(id).classList.remove('active');
-}
-
-function askAI() {
-    const input = document.getElementById('aiInput');
-    const text = input.value.trim();
-    if (!text) return;
-    
-    const chat = document.getElementById('aiChat');
-    chat.innerHTML += `<div class="ai-message user"><strong>Вы:</strong> ${text}</div>`;
-    input.value = '';
-    chat.scrollTop = chat.scrollHeight;
-    
-    // Умные ответы бота
-    const lowerText = text.toLowerCase();
-    let reply = '';
-    
-    if (lowerText.includes('привет') || lowerText.includes('здравствуй') || lowerText.includes('хай')) {
-        reply = ' Привет! Рад тебя видеть! Как дела?';
-    } else if (lowerText.includes('как дела') || lowerText.includes('как ты')) {
-        reply = '😊 У меня всё отлично! Я же бот — у меня всегда хорошее настроение!';
-    } else if (lowerText.includes('/шутка') || lowerText.includes('шутк') || lowerText.includes('анекдот')) {
-        const jokes = [
-            '😄 Почему программисты путают Хэллоуин и Рождество? Потому что Oct 31 = Dec 25!',
-            '😂 99 багов в коде. Исправляешь один — появляется 127!',
-            '🤣 — Сколько программистов нужно, чтобы вкрутить лампочку? — Ни одного, это аппаратная проблема!',
-            '😆 Жена программиста: "Сходи в магазин, купи батон хлеба. Если будут яйца — возьми десяток." Он вернулся с 10 батонами!'
-        ];
-        reply = jokes[Math.floor(Math.random() * jokes.length)];
-    } else if (lowerText.includes('/время') || lowerText.includes('врем') || lowerText.includes('час')) {
-        const now = new Date();
-        reply = `🕐 Сейчас ${now.toLocaleTimeString('ru-RU')} (${now.toLocaleDateString('ru-RU')})`;
-    } else if (lowerText.includes('/погода') || lowerText.includes('погод')) {
-        const weathers = ['☀️ Ясно, +22°C', '️ Малооблачно, +18°C', '🌧️ Дождь, +15°C', '⛈️ Гроза, +20°C', '❄️ Снег, -5°C'];
-        reply = `Погода в Москве: ${weathers[Math.floor(Math.random() * weathers.length)]}`;
-    } else if (lowerText.includes('/помощь') || lowerText.includes('помощ') || lowerText.includes('help') || lowerText.includes('что умеешь')) {
-        reply = ' <b>Мои команды:</b><br>• /шутка — расскажу шутку<br>• /время — текущее время<br>• /погода — прогноз погоды<br>• /помощь — этот список<br><br>Также я понимаю: привет, как дела, спасибо, пока';
-    } else if (lowerText.includes('спасибо') || lowerText.includes('благодар')) {
-        reply = '😊 Пожалуйста! Обращайся ещё!';
-    } else if (lowerText.includes('пока') || lowerText.includes('до свидания') || lowerText.includes('bye')) {
-        reply = '👋 До свидания! Возвращайся скорее!';
-    } else if (lowerText.includes('кто ты') || lowerText.includes('что ты')) {
-        reply = '🤖 Я — AI-ассистент Lumio! Я работаю прямо в твоём браузере, без интернета и без API-ключей.';
-    } else if (lowerText.includes('lumio') || lowerText.includes('люмио')) {
-        reply = '🌟 Lumio — это мессенджер, который ты сам создал! С E2EE, WebSocket и крутым дизайном!';
-    } else if (lowerText.includes('?')) {
-        const answers = [
-            '🤔 Хороший вопрос! Попробуй написать /помощь, чтобы увидеть мои команды.',
-            '💡 Hmm, я пока не знаю ответа на это. Но я умею шутить! Напиши /шутка',
-            ' Интересная мысль! Я простой бот, но стараюсь быть полезным.'
-        ];
-        reply = answers[Math.floor(Math.random() * answers.length)];
-    } else {
-        const defaults = [
-            `🤖 Ты написал: "${text}". Интересная мысль!`,
-            `😊 Понял тебя! Напиши /помощь, чтобы увидеть что я умею.`,
-            ` Принято! А ты знал, что я могу рассказать шутку? Напиши /шутка!`
-        ];
-        reply = defaults[Math.floor(Math.random() * defaults.length)];
-    }
-    
-    setTimeout(() => {
-        chat.innerHTML += `<div class="ai-message bot"><strong> Бот:</strong> ${reply}</div>`;
-        chat.scrollTop = chat.scrollHeight;
-    }, 500);
-}
-</script><!-- Кнопки видео и карт -->
-<style>
-.action-buttons{position:fixed;bottom:80px;right:80px;display:flex;flex-direction:column;gap:10px;z-index:100;}
-.action-btn{width:50px;height:50px;border-radius:50%;border:none;cursor:pointer;font-size:1.5rem;color:#fff;transition:transform 0.2s;}
-.action-btn:hover{transform:scale(1.1);}
-.action-btn.video{background:linear-gradient(135deg,#ff6b6b,#ee5a6f);}
-.action-btn.map{background:linear-gradient(135deg,#4facfe,#00f2fe);}
-.video-container{max-width:320px;border-radius:12px;overflow:hidden;margin:0.5rem 0;background:#000;}
-.video-container video{width:100%;max-height:400px;}
-.map-container{width:320px;height:200px;border-radius:12px;overflow:hidden;margin:0.5rem 0;}
-#map-display{width:100%;height:100%;}
-</style>
-
-<div class="action-buttons">
-    <button class="action-btn video" onclick="document.getElementById('videoInput').click()" title="Отправить видео"></button>
-    <button class="action-btn map" onclick="sendLocation()" title="Отправить местоположение">📍</button>
-</div>
-
-<input type="file" id="videoInput" accept="video/*" style="display:none;" onchange="handleVideoUpload(event)">
-
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-
-<script>
-// ============ ОТПРАВКА ВИДЕО ============
-function handleVideoUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    
-    if (file.size > 50 * 1024 * 1024) {
-        alert('⚠️ Файл слишком большой! Максимум 50 МБ');
-        return;
-    }
-    
-    const videoUrl = URL.createObjectURL(file);
-    const fileName = file.name;
-    
-    // Показываем видео в нашем чате
-    const area = document.getElementById('messagesArea');
-    const msgDiv = document.createElement('div');
-    msgDiv.className = 'message own';
-    msgDiv.innerHTML = `
-        <div class="message-bubble">
-            <div class="video-container">
-                <video controls src="${videoUrl}"></video>
-            </div>
-            <div style="font-size:0.8rem;color:var(--text-secondary);margin-top:0.3rem;">📎 ${fileName}</div>
-            <div class="message-time">${new Date().toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'})}</div>
-        </div>
-    `;
-    area.appendChild(msgDiv);
-    area.scrollTop = area.scrollHeight;
-    
-    // Отправляем ссылку на видео другим пользователям
-    if (ws && ws.readyState === 1) {
-        ws.send(JSON.stringify({
-            type: 'chat_message',
-            text: `[Видео: ${fileName}]`,
-            video: videoUrl,
-            fileName: fileName
-        }));
-    }
-    
-    // Очищаем input
-    event.target.value = '';
-}
-
-// ============ ОТПРАВКА ГЕОЛОКАЦИИ ============
-function sendLocation() {
-    if (!navigator.geolocation) {
-        alert('️ Геолокация не поддерживается вашим браузером');
-        return;
-    }
-    
-    if (confirm('📍 Разрешить доступ к вашему местоположению?')) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const lat = position.coords.latitude;
-                const lng = position.coords.longitude;
-                
-                // Показываем карту в нашем чате
-                const area = document.getElementById('messagesArea');
-                const msgDiv = document.createElement('div');
-                msgDiv.className = 'message own';
-                const mapId = 'map-' + Date.now();
-                
-                msgDiv.innerHTML = `
-                    <div class="message-bubble">
-                        <div class="map-container">
-                            <div id="${mapId}"></div>
-                        </div>
-                        <div style="font-size:0.8rem;color:var(--text-secondary);margin-top:0.3rem;">
-                            📍 ${lat.toFixed(6)}, ${lng.toFixed(6)}
-                        </div>
-                        <div class="message-time">${new Date().toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'})}</div>
-                    </div>
-                `;
-                area.appendChild(msgDiv);
-                area.scrollTop = area.scrollHeight;
-                
-                // Инициализируем карту
-                setTimeout(() => {
-                    const map = L.map(mapId).setView([lat, lng], 15);
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                        attribution: '© OpenStreetMap'
-                    }).addTo(map);
-                    L.marker([lat, lng]).addTo(map).bindPopup('📍 Вы здесь').openPopup();
-                }, 100);
-                
-                // Отправляем координаты другим
-                if (ws && ws.readyState === 1) {
-                    ws.send(JSON.stringify({
-                        type: 'chat_message',
-                        text: `[Местоположение: ${lat.toFixed(6)}, ${lng.toFixed(6)}]`,
-                        location: { lat, lng }
-                    }));
-                }
-            },
-            (error) => {
-                alert('️ Не удалось получить местоположение: ' + error.message);
-            },
-            { enableHighAccuracy: true, timeout: 10000 }
-        );
-    }
-}
-
-// ============ ПОЛУЧЕНИЕ ВИДЕО И КАРТ ОТ ДРУГИХ ============
-const originalHandleServerMessage = handleServerMessage;
-handleServerMessage = async function(msg) {
-    await originalHandleServerMessage(msg);
-    
-    // Если сообщение содержит видео
-    if (msg.message && msg.message.video) {
-        const area = document.getElementById('messagesArea');
-        const msgDiv = document.createElement('div');
-        msgDiv.className = 'message other';
-        msgDiv.innerHTML = `
-            <div class="message-bubble">
-                <div style="font-size:0.8rem;color:var(--accent-cyan);font-weight:600;margin-bottom:0.2rem;">${msg.message.fromName}</div>
-                <div class="video-container">
-                    <video controls src="${msg.message.video}"></video>
-                </div>
-                <div style="font-size:0.8rem;color:var(--text-secondary);margin-top:0.3rem;">📎 ${msg.message.fileName || 'Видео'}</div>
-                <div class="message-time">${new Date(msg.message.timestamp).toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'})}</div>
-            </div>
-        `;
-        area.appendChild(msgDiv);
-        area.scrollTop = area.scrollHeight;
-    }
-    
-    // Если сообщение содержит местоположение
-    if (msg.message && msg.message.location) {
-        const area = document.getElementById('messagesArea');
-        const msgDiv = document.createElement('div');
-        msgDiv.className = 'message other';
-        const mapId = 'map-' + Date.now();
-        
-        msgDiv.innerHTML = `
-            <div class="message-bubble">
-                <div style="font-size:0.8rem;color:var(--accent-cyan);font-weight:600;margin-bottom:0.2rem;">${msg.message.fromName}</div>
-                <div class="map-container">
-                    <div id="${mapId}"></div>
-                </div>
-                <div style="font-size:0.8rem;color:var(--text-secondary);margin-top:0.3rem;">
-                    📍 ${msg.message.location.lat.toFixed(6)}, ${msg.message.location.lng.toFixed(6)}
-                </div>
-                <div class="message-time">${new Date(msg.message.timestamp).toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'})}</div>
-            </div>
-        `;
-        area.appendChild(msgDiv);
-        area.scrollTop = area.scrollHeight;
-        
-        setTimeout(() => {
-            const map = L.map(mapId).setView([msg.message.location.lat, msg.message.location.lng], 15);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap'
-            }).addTo(map);
-            L.marker([msg.message.location.lat, msg.message.location.lng]).addTo(map).bindPopup('📍 ' + msg.message.fromName).openPopup();
-        }, 100);
-    }
-};
-</script><!-- Стили для новых функций -->
-<style>
-/* Анимации */
-@keyframes slideIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-@keyframes popIn {
-    0% { transform: scale(0); }
-    80% { transform: scale(1.1); }
-    100% { transform: scale(1); }
-}
-@keyframes pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-}
-
-.message { animation: slideIn 0.3s ease; }
-.sticker-large { font-size: 4rem; animation: popIn 0.5s ease; }
-
-/* Кнопки действий */
-.action-buttons {
-    position: fixed;
-    bottom: 80px;
-    right: 80px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    z-index: 100;
-}
-.action-btn {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    border: none;
-    cursor: pointer;
-    font-size: 1.5rem;
-    color: #fff;
-    transition: transform 0.2s;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-}
-.action-btn:hover { transform: scale(1.1); }
-.action-btn.poll { background: linear-gradient(135deg, #667eea, #764ba2); }
-.action-btn.voice { background: linear-gradient(135deg, #f093fb, #f5576c); }
-.action-btn.sticker { background: linear-gradient(135deg, #4facfe, #00f2fe); }
-
-/* Опрос */
-.poll-container {
-    background: var(--bg-hover);
-    border-radius: 12px;
-    padding: 1rem;
-    margin: 0.5rem 0;
-    min-width: 280px;
-}
-.poll-question {
-    font-weight: 600;
-    margin-bottom: 0.8rem;
-    font-size: 1rem;
-}
-.poll-option {
-    padding: 0.6rem 0.8rem;
-    margin-bottom: 0.4rem;
-    background: var(--bg-elevated);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s;
-    position: relative;
-    overflow: hidden;
-}
-.poll-option:hover { background: var(--bg-surface); }
-.poll-option.voted { background: rgba(0,229,255,0.15); }
-.poll-option-bar {
-    position: absolute;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    background: var(--accent-gradient);
-    opacity: 0.2;
-    transition: width 0.5s;
-}
-.poll-option-text {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.9rem;
-}
-.poll-votes {
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    margin-top: 0.6rem;
-}
-
-/* Голосовое сообщение */
-.voice-message {
-    display: flex;
-    align-items: center;
-    gap: 0.7rem;
-    padding: 0.5rem 0;
-    min-width: 200px;
-}
-.voice-play-btn {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: var(--accent-gradient);
-    border: none;
-    cursor: pointer;
-    color: #fff;
-    font-size: 1.1rem;
-    flex-shrink: 0;
-}
-.voice-wave {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    height: 30px;
-}
-.voice-bar {
-    width: 3px;
-    background: var(--text-secondary);
-    border-radius: 2px;
-    transition: background 0.3s;
-}
-.voice-bar.played { background: var(--accent-cyan); }
-.voice-duration {
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-}
-.recording-indicator {
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: var(--danger);
-    color: #fff;
-    padding: 0.8rem 1.5rem;
-    border-radius: 25px;
-    display: none;
-    align-items: center;
-    gap: 0.6rem;
-    z-index: 2000;
-    animation: pulse 1s infinite;
-}
-.recording-indicator.active { display: flex; }
-.rec-dot {
-    width: 10px;
-    height: 10px;
-    background: #fff;
-    border-radius: 50%;
-    animation: pulse 1s infinite;
-}
-
-/* Стикеры */
-.sticker-panel {
-    position: fixed;
-    bottom: 140px;
-    right: 80px;
-    background: var(--bg-surface);
-    border: 1px solid var(--border-color);
-    border-radius: 16px;
-    padding: 1rem;
-    display: none;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 0.8rem;
-    max-width: 320px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
-    z-index: 150;
-}
-.sticker-panel.active { display: grid; }
-.sticker-item {
-    font-size: 2.5rem;
-    text-align: center;
-    cursor: pointer;
-    padding: 0.5rem;
-    border-radius: 10px;
-    transition: transform 0.2s;
-}
-.sticker-item:hover {
-    transform: scale(1.2);
-    background: var(--bg-hover);
-}
-
-/* Модальные окна */
-.modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.7);
-    backdrop-filter: blur(6px);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    padding: 1rem;
-}
-.modal-overlay.active { display: flex; }
-.modal {
-    background: var(--bg-surface);
-    border-radius: 16px;
-    width: 100%;
-    max-width: 500px;
-    max-height: 85vh;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-}
-.modal-header {
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid var(--border-color);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.modal-header h3 { font-size: 1.1rem; font-weight: 700; }
-.modal-close {
-    background: none;
-    border: none;
-    color: var(--text-primary);
-    font-size: 1.5rem;
-    cursor: pointer;
-}
-.modal-body { padding: 1.5rem; overflow-y: auto; flex: 1; }
-.form-input, .form-textarea {
-    width: 100%;
-    padding: 0.7rem 0.9rem;
-    background: var(--bg-hover);
-    border: 1px solid var(--border-color);
-    border-radius: 10px;
-    color: var(--text-primary);
-    font-size: 0.9rem;
-    outline: none;
-    font-family: inherit;
-    margin-bottom: 1rem;
-}
-.form-textarea { min-height: 80px; resize: vertical; }
-.btn-primary {
-    padding: 0.7rem 1.5rem;
-    background: var(--accent-gradient);
-    border: none;
-    border-radius: 20px;
-    color: #fff;
-    font-weight: 600;
-    cursor: pointer;
-}
-</style>
-
-<!-- Кнопки действий -->
-<div class="action-buttons">
-    <button class="action-btn poll" onclick="openPollModal()" title="Создать опрос">🗳️</button>
-    <button class="action-btn voice" onclick="toggleRecording()" title="Голосовое сообщение" id="voiceRecordBtn"></button>
-    <button class="action-btn sticker" onclick="toggleStickerPanel()" title="Стикеры">🎭</button>
-</div>
-
-<!-- Индикатор записи -->
-<div class="recording-indicator" id="recordingIndicator">
-    <div class="rec-dot"></div>
-    <span id="recordingTime">0:00</span>
-    <button onclick="stopRecording()" style="background:none;border:none;color:#fff;font-size:1.2rem;cursor:pointer;margin-left:1rem;">⏹️</button>
-</div>
-
-<!-- Панель стикеров -->
-<div class="sticker-panel" id="stickerPanel">
-    <div class="sticker-item" onclick="sendSticker('😀')">😀</div>
-    <div class="sticker-item" onclick="sendSticker('😂')">😂</div>
-    <div class="sticker-item" onclick="sendSticker('😍')">😍</div>
-    <div class="sticker-item" onclick="sendSticker('🥰')">🥰</div>
-    <div class="sticker-item" onclick="sendSticker('😎')">😎</div>
-    <div class="sticker-item" onclick="sendSticker('🤔')">🤔</div>
-    <div class="sticker-item" onclick="sendSticker('😢')">😢</div>
-    <div class="sticker-item" onclick="sendSticker('😡')">😡</div>
-    <div class="sticker-item" onclick="sendSticker('👍')">👍</div>
-    <div class="sticker-item" onclick="sendSticker('👎')"></div>
-    <div class="sticker-item" onclick="sendSticker('❤️')">❤️</div>
-    <div class="sticker-item" onclick="sendSticker('🔥')">🔥</div>
-    <div class="sticker-item" onclick="sendSticker('')">🎉</div>
-    <div class="sticker-item" onclick="sendSticker('🚀')">🚀</div>
-    <div class="sticker-item" onclick="sendSticker('💯')">💯</div>
-    <div class="sticker-item" onclick="sendSticker('✨')">✨</div>
-</div>
-
-<!-- Модальное окно опроса -->
-<div class="modal-overlay" id="modal-poll" onclick="if(event.target===this)closeModal('modal-poll')">
-    <div class="modal">
-        <div class="modal-header">
-            <h3>🗳️ Создать опрос</h3>
-            <button class="modal-close" onclick="closeModal('modal-poll')">✕</button>
-        </div>
-        <div class="modal-body">
-            <input type="text" class="form-input" id="pollQuestion" placeholder="Вопрос опроса">
-            <textarea class="form-textarea" id="pollOptions" placeholder="Варианты ответов (каждый с новой строки)"></textarea>
-            <button class="btn-primary" onclick="createPoll()" style="width:100%;">Создать опрос</button>
-        </div>
-    </div>
-</div>
-
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-
-<script>
-// ============ ЗВУКИ И УВЕДОМЛЕНИЯ ============
-const messageSound = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIGGS57OihUBELTKXh8bllHAU2kNbxz4Az');
-
-function playNotificationSound() {
-    messageSound.play().catch(e => console.log('Sound blocked'));
-}
-
-function showNotification(title, body) {
-    if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification(title, { body, icon: 'icons/icon-192.png' });
-    }
-}
-
-// Запрос разрешения на уведомления
-if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission();
-}
-
-// ============ ОПРОСЫ ============
-let polls = {};
-
-function openPollModal() {
-    document.getElementById('modal-poll').classList.add('active');
-    document.getElementById('pollQuestion').focus();
-}
-
-function closeModal(id) {
-    document.getElementById(id).classList.remove('active');
-}
-
-function createPoll() {
-    const question = document.getElementById('pollQuestion').value.trim();
-    const optionsText = document.getElementById('pollOptions').value.trim();
-    const options = optionsText.split('\n').map(o => o.trim()).filter(o => o);
-    
-    if (!question || options.length < 2) {
-        alert('⚠️ Введите вопрос и минимум 2 варианта');
-        return;
-    }
-    
-    const pollId = 'poll-' + Date.now();
-    polls[pollId] = {
-        question,
-        options,
-        votes: {},
-        totalVotes: 0
-    };
-    
-    // Показываем опрос в чате
-    const area = document.getElementById('messagesArea');
-    const msgDiv = document.createElement('div');
-    msgDiv.className = 'message own';
-    msgDiv.innerHTML = renderPoll(pollId);
-    area.appendChild(msgDiv);
-    area.scrollTop = area.scrollHeight;
-    
-    // Отправляем другим
-    if (ws && ws.readyState === 1) {
-        ws.send(JSON.stringify({
-            type: 'chat_message',
-            text: `[Опрос: ${question}]`,
-            poll: { id: pollId, question, options }
-        }));
-    }
-    
-    // Очищаем форму
-    document.getElementById('pollQuestion').value = '';
-    document.getElementById('pollOptions').value = '';
-    closeModal('modal-poll');
-}
-
-function renderPoll(pollId) {
-    const poll = polls[pollId];
-    if (!poll) return '';
-    
-    const optionsHtml = poll.options.map((opt, idx) => {
-        const votes = poll.votes[idx] || 0;
-        const percent = poll.totalVotes > 0 ? Math.round(votes / poll.totalVotes * 100) : 0;
-        const voted = poll.myVote === idx;
-        return `
-            <div class="poll-option ${voted ? 'voted' : ''}" onclick="votePoll('${pollId}', ${idx})">
-                <div class="poll-option-bar" style="width: ${percent}%;"></div>
-                <div class="poll-option-text">
-                    <span>${voted ? '✓ ' : ''}${opt}</span>
-                    <span>${percent}%</span>
-                </div>
-            </div>
-        `;
-    }).join('');
-    
-    return `
-        <div class="message-bubble">
-            <div class="poll-container">
-                <div class="poll-question">🗳️ ${poll.question}</div>
-                ${optionsHtml}
-                <div class="poll-votes">Всего голосов: ${poll.totalVotes}</div>
-            </div>
-            <div class="message-time">${new Date().toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'})}</div>
-        </div>
-    `;
-}
-
-function votePoll(pollId, optionIdx) {
-    const poll = polls[pollId];
-    if (!poll) return;
-    
-    // Убираем старый голос
-    if (poll.myVote !== undefined) {
-        poll.votes[poll.myVote] = (poll.votes[poll.myVote] || 1) - 1;
-        poll.totalVotes--;
-    }
-    
-    // Добавляем новый голос
-    poll.votes[optionIdx] = (poll.votes[optionIdx] || 0) + 1;
-    poll.totalVotes++;
-    poll.myVote = optionIdx;
-    
-    // Перерисовываем опрос
-    const msgDiv = event.target.closest('.message');
-    if (msgDiv) {
-        msgDiv.innerHTML = renderPoll(pollId);
-    }
-}
-
-// ============ ГОЛОСОВЫЕ СООБЩЕНИЯ ============
-let mediaRecorder = null;
-let audioChunks = [];
-let recordingStartTime = null;
-let recordingTimer = null;
-
-async function toggleRecording() {
-    if (mediaRecorder && mediaRecorder.state === 'recording') {
-        stopRecording();
-    } else {
-        startRecording();
-    }
-}
-
-async function startRecording() {
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
-        audioChunks = [];
-        
-        mediaRecorder.ondataavailable = (event) => {
-            audioChunks.push(event.data);
-        };
-        
-        mediaRecorder.onstop = () => {
-            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-            const audioUrl = URL.createObjectURL(audioBlob);
-            const duration = Math.floor((Date.now() - recordingStartTime) / 1000);
-            
-            sendVoiceMessage(audioUrl, duration);
-            stream.getTracks().forEach(track => track.stop());
-        };
-        
-        mediaRecorder.start();
-        recordingStartTime = Date.now();
-        
-        document.getElementById('recordingIndicator').classList.add('active');
-        document.getElementById('voiceRecordBtn').style.background = 'var(--danger)';
-        
-        recordingTimer = setInterval(() => {
-            const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
-            const mins = Math.floor(elapsed / 60);
-            const secs = elapsed % 60;
-            document.getElementById('recordingTime').textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
-        }, 1000);
-        
-    } catch (err) {
-        alert('⚠️ Не удалось получить доступ к микрофону: ' + err.message);
-    }
-}
-
-function stopRecording() {
-    if (mediaRecorder && mediaRecorder.state === 'recording') {
-        mediaRecorder.stop();
-    }
-    
-    clearInterval(recordingTimer);
-    document.getElementById('recordingIndicator').classList.remove('active');
-    document.getElementById('voiceRecordBtn').style.background = '';
-}
-
-function sendVoiceMessage(audioUrl, duration) {
-    const area = document.getElementById('messagesArea');
-    const msgDiv = document.createElement('div');
-    msgDiv.className = 'message own';
-    
-    const bars = Array.from({length: 20}, () => 5 + Math.random() * 20);
-    const barsHtml = bars.map(h => `<div class="voice-bar" style="height:${h}px;"></div>`).join('');
-    
-    msgDiv.innerHTML = `
-        <div class="message-bubble">
-            <div class="voice-message">
-                <button class="voice-play-btn" onclick="playVoice(this, '${audioUrl}')">▶️</button>
-                <div class="voice-wave">${barsHtml}</div>
-                <div class="voice-duration">${formatDuration(duration)}</div>
-            </div>
-            <div class="message-time">${new Date().toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'})}</div>
-        </div>
-    `;
-    
-    area.appendChild(msgDiv);
-    area.scrollTop = area.scrollHeight;
-    
-    if (ws && ws.readyState === 1) {
-        ws.send(JSON.stringify({
-            type: 'chat_message',
-            text: `[Голосовое сообщение: ${formatDuration(duration)}]`,
-            voice: { url: audioUrl, duration }
-        }));
-    }
-}
-
-function playVoice(btn, audioUrl) {
-    const audio = new Audio(audioUrl);
-    const bars = btn.parentElement.querySelectorAll('.voice-bar');
-    
-    btn.textContent = '⏸️';
-    audio.play();
-    
-    audio.ontimeupdate = () => {
-        const progress = audio.currentTime / audio.duration;
-        const playedBars = Math.floor(progress * bars.length);
-        bars.forEach((bar, idx) => {
-            bar.classList.toggle('played', idx < playedBars);
         });
-    };
-    
-    audio.onended = () => {
-        btn.textContent = '▶️';
-        bars.forEach(bar => bar.classList.remove('played'));
-    };
-}
 
-function formatDuration(seconds) {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-}
+        // Переключение вкладок Вход / Регистрация
+        function showTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            if (tab === 'login') {
+                document.getElementById('login-form').style.display = 'block';
+                document.getElementById('register-form').style.display = 'none';
+            } else {
+                document.getElementById('login-form').style.display = 'none';
+                document.getElementById('register-form').style.display = 'block';
+            }
+        }
 
-// ============ СТИКЕРЫ ============
-function toggleStickerPanel() {
-    document.getElementById('stickerPanel').classList.toggle('active');
-}
+        // Обработка Входа
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
+            const errorMsg = document.getElementById('login-error');
+            errorMsg.textContent = 'Вход...';
 
-function sendSticker(emoji) {
-    const area = document.getElementById('messagesArea');
-    const msgDiv = document.createElement('div');
-    msgDiv.className = 'message own';
-    msgDiv.innerHTML = `
-        <div class="message-bubble">
-            <div class="sticker-large">${emoji}</div>
-            <div class="message-time">${new Date().toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'})}</div>
-        </div>
-    `;
-    area.appendChild(msgDiv);
-    area.scrollTop = area.scrollHeight;
-    
-    if (ws && ws.readyState === 1) {
-        ws.send(JSON.stringify({
-            type: 'chat_message',
-            text: `[Стикер: ${emoji}]`,
-            sticker: emoji
-        }));
-    }
-    
-    toggleStickerPanel();
-}
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    localStorage.setItem('lumio_token', data.token);
+                    localStorage.setItem('lumio_username', data.username);
+                    currentUsername = data.username;
+                    document.getElementById('auth-overlay').style.display = 'none';
+                    document.getElementById('chat-app').style.display = 'flex';
+                    document.getElementById('current-user-display').textContent = data.username;
+                    connectWebSocket(data.token);
+                } else {
+                    errorMsg.textContent = data.error || 'Ошибка входа';
+                }
+            } catch (err) {
+                errorMsg.textContent = 'Ошибка сети';
+            }
+        });
 
-// ============ ОБРАБОТКА ВХОДЯЩИХ СООБЩЕНИЙ ============
-const originalHandleServerMessage = handleServerMessage;
-handleServerMessage = async function(msg) {
-    await originalHandleServerMessage(msg);
-    
-    if (msg.message) {
-        // Звук и уведомление
-        playNotificationSound();
-        showNotification('Новое сообщение', msg.message.fromName + ': ' + msg.message.text);
-        
-        // Опрос
-        if (msg.message.poll) {
-            polls[msg.message.poll.id] = {
-                ...msg.message.poll,
-                votes: {},
-                totalVotes: 0
+        // Обработка Регистрации
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('reg-username').value;
+            const password = document.getElementById('reg-password').value;
+            const errorMsg = document.getElementById('reg-error');
+            errorMsg.textContent = 'Регистрация...';
+
+            try {
+                const res = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    localStorage.setItem('lumio_token', data.token);
+                    localStorage.setItem('lumio_username', data.username);
+                    currentUsername = data.username;
+                    document.getElementById('auth-overlay').style.display = 'none';
+                    document.getElementById('chat-app').style.display = 'flex';
+                    document.getElementById('current-user-display').textContent = data.username;
+                    connectWebSocket(data.token);
+                } else {
+                    errorMsg.textContent = data.error || 'Ошибка регистрации';
+                }
+            } catch (err) {
+                errorMsg.textContent = 'Ошибка сети';
+            }
+        });
+
+        // Выход из системы
+        function logout() {
+            localStorage.removeItem('lumio_token');
+            localStorage.removeItem('lumio_username');
+            if (ws) ws.close();
+            location.reload();
+        }
+
+        // Подключение к WebSocket с токеном
+        function connectWebSocket(token) {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${window.location.host}`);
+
+            ws.onopen = () => {
+                console.log('Connected to server');
+                ws.send(JSON.stringify({ type: 'auth', token: token }));
             };
-            const area = document.getElementById('messagesArea');
-            const msgDiv = document.createElement('div');
-            msgDiv.className = 'message other';
-            msgDiv.innerHTML = `
-                <div class="message-bubble">
-                    <div style="font-size:0.8rem;color:var(--accent-cyan);font-weight:600;margin-bottom:0.2rem;">${msg.message.fromName}</div>
-                    ${renderPoll(msg.message.poll.id)}
-                </div>
-            `;
-            area.appendChild(msgDiv);
-            area.scrollTop = area.scrollHeight;
-        }
-        
-        // Голосовое
-        if (msg.message.voice) {
-            const area = document.getElementById('messagesArea');
-            const msgDiv = document.createElement('div');
-            msgDiv.className = 'message other';
-            const bars = Array.from({length: 20}, () => 5 + Math.random() * 20);
-            const barsHtml = bars.map(h => `<div class="voice-bar" style="height:${h}px;"></div>`).join('');
-            
-            msgDiv.innerHTML = `
-                <div class="message-bubble">
-                    <div style="font-size:0.8rem;color:var(--accent-cyan);font-weight:600;margin-bottom:0.2rem;">${msg.message.fromName}</div>
-                    <div class="voice-message">
-                        <button class="voice-play-btn" onclick="playVoice(this, '${msg.message.voice.url}')">▶️</button>
-                        <div class="voice-wave">${barsHtml}</div>
-                        <div class="voice-duration">${formatDuration(msg.message.voice.duration)}</div>
-                    </div>
-                    <div class="message-time">${new Date(msg.message.timestamp).toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'})}</div>
-                </div>
-            `;
-            area.appendChild(msgDiv);
-            area.scrollTop = area.scrollHeight;
-        }
-        
-        // Стикер
-        if (msg.message.sticker) {
-            const area = document.getElementById('messagesArea');
-            const msgDiv = document.createElement('div');
-            msgDiv.className = 'message other';
-            msgDiv.innerHTML = `
-                <div class="message-bubble">
-                    <div style="font-size:0.8rem;color:var(--accent-cyan);font-weight:600;margin-bottom:0.2rem;">${msg.message.fromName}</div>
-                    <div class="sticker-large">${msg.message.sticker}</div>
-                    <div class="message-time">${new Date(msg.message.timestamp).toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'})}</div>
-                </div>
-            `;
-            area.appendChild(msgDiv);
-            area.scrollTop = area.scrollHeight;
-        }
-    }
-};
 
-// Закрытие панели стикеров при клике вне её
-document.addEventListener('click', (e) => {
-    const panel = document.getElementById('stickerPanel');
-    if (panel.classList.contains('active') && !e.target.closest('.sticker-panel') && !e.target.closest('.action-btn.sticker')) {
-        panel.classList.remove('active');
-    }
-});
-</script>/body>
+            ws.onmessage = (event) => {
+                const msg = JSON.parse(event.data);
+                
+                if (msg.type === 'auth_success') {
+                    currentUserId = msg.userId;
+                    loadHistory();
+                    return;
+                }
+                
+                if (msg.type === 'auth_error') {
+                    alert('Сессия истекла. Пожалуйста, войдите снова.');
+                    logout();
+                    return;
+                }
+
+                if (msg.type === 'history') {
+                    const messagesDiv = document.getElementById('messages');
+                    messagesDiv.innerHTML = '';
+                    msg.messages.forEach(m => appendMessage(m.fromName, m.text, m.from === currentUserId));
+                    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                    return;
+                }
+
+                if (msg.type === 'chat_message') {
+                    appendMessage(msg.message.fromName, msg.message.text, msg.message.from === currentUserId);
+                    const messagesDiv = document.getElementById('messages');
+                    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                }
+            };
+
+            ws.onclose = () => console.log('Disconnected');
+        }
+
+        // Отправка сообщения
+        document.getElementById('send-btn').addEventListener('click', sendMessage);
+        document.getElementById('message-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        function sendMessage() {
+            const input = document.getElementById('message-input');
+            const text = input.value.trim();
+            if (!text || !ws || ws.readyState !== 1) return;
+
+            ws.send(JSON.stringify({
+                type: 'chat_message',
+                text: text,
+                encrypted: false
+            }));
+            input.value = '';
+        }
+
+        function appendMessage(username, text, isOwn) {
+            const messagesDiv = document.getElementById('messages');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${isOwn ? 'own' : ''}`;
+            msgDiv.innerHTML = `<div class="meta">${username}</div><div>${text}</div>`;
+            messagesDiv.appendChild(msgDiv);
+        }
+
+        function loadHistory() {
+            ws.send(JSON.stringify({ type: 'join_room', roomId: 'general' }));
+        }
+    </script>
+</body>
 </html>
