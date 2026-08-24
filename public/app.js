@@ -519,4 +519,88 @@ function hideCallModal() {
     document.getElementById('local-video').srcObject = null;
     document.getElementById('remote-video').srcObject = null;
     incomingCallData = null;
+}// === ЭТАП 1: ВИЗУАЛЬНЫЕ ЭФФЕКТЫ ===
+
+// 2. Ripple-эффект для кнопок
+function createRipple(event) {
+    const button = event.currentTarget;
+    const circle = document.createElement('span');
+    const diameter = Math.max(button.clientWidth, button.clientHeight);
+    const radius = diameter / 2;
+    
+    circle.style.width = circle.style.height = `${diameter}px`;
+    circle.style.left = `${event.clientX - button.getBoundingClientRect().left - radius}px`;
+    circle.style.top = `${event.clientY - button.getBoundingClientRect().top - radius}px`;
+    circle.classList.add('ripple');
+    
+    const ripple = button.getElementsByClassName('ripple')[0];
+    if (ripple) {
+        ripple.remove();
+    }
+    
+    button.appendChild(circle);
 }
+
+// Применяем ripple ко всем кнопкам
+document.addEventListener('DOMContentLoaded', () => {
+    const buttons = document.querySelectorAll('button');
+    buttons.forEach(btn => {
+        btn.classList.add('ripple-btn');
+        btn.addEventListener('click', createRipple);
+    });
+});
+
+// 8. Кастомный курсор
+const cursor = document.createElement('div');
+cursor.className = 'custom-cursor';
+document.body.appendChild(cursor);
+
+const trail = document.createElement('div');
+trail.className = 'custom-cursor-trail';
+document.body.appendChild(trail);
+
+let mouseX = 0, mouseY = 0;
+let cursorX = 0, cursorY = 0;
+let trailX = 0, trailY = 0;
+
+document.addEventListener('mousemove', (e) => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+});
+
+function animateCursor() {
+    // Плавное следование курсора
+    cursorX += (mouseX - cursorX) * 0.2;
+    cursorY += (mouseY - cursorY) * 0.2;
+    trailX += (mouseX - trailX) * 0.1;
+    trailY += (mouseY - trailY) * 0.1;
+    
+    cursor.style.left = `${cursorX - 10}px`;
+    cursor.style.top = `${cursorY - 10}px`;
+    trail.style.left = `${trailX - 4}px`;
+    trail.style.top = `${trailY - 4}px`;
+    
+    requestAnimationFrame(animateCursor);
+}
+animateCursor();
+
+// Увеличение курсора при наведении на интерактивные элементы
+document.addEventListener('mouseover', (e) => {
+    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'A' || e.target.classList.contains('user-item') || e.target.classList.contains('room-item')) {
+        cursor.classList.add('hover');
+    }
+});
+
+document.addEventListener('mouseout', (e) => {
+    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'A' || e.target.classList.contains('user-item') || e.target.classList.contains('room-item')) {
+        cursor.classList.remove('hover');
+    }
+});
+
+// 9. Анимированные иконки
+document.addEventListener('DOMContentLoaded', () => {
+    const icons = document.querySelectorAll('.action-btn, #emoji-btn, #attach-btn, #voice-btn, #send-btn');
+    icons.forEach(icon => {
+        icon.classList.add('icon-animated');
+    });
+});
