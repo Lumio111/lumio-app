@@ -67,7 +67,6 @@
         .message { background: #0f3460; padding: 10px 15px; border-radius: 12px; max-width: 70%; word-wrap: break-word; position: relative; }
         body.light-theme .message { background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .message.own { background: #e94560; align-self: flex-end; }
-        .message.deleted { opacity: 0.5; font-style: italic; }
         .message .meta { font-size: 11px; opacity: 0.7; margin-bottom: 4px; }
         .message .text { font-size: 14px; margin-bottom: 5px; }
         .message .time { font-size: 10px; opacity: 0.5; margin-top: 4px; text-align: right; }
@@ -82,24 +81,34 @@
         .message:hover .actions { display: flex; }
         .action-btn { background: rgba(0,0,0,0.3); border: none; color: #fff; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; }
         
+        .message .file-preview { margin: 8px 0; }
+        .message .file-preview img { max-width: 100%; max-height: 300px; border-radius: 8px; cursor: pointer; }
+        .message .file-preview video { max-width: 100%; max-height: 300px; border-radius: 8px; }
+        .message .file-preview audio { width: 100%; margin: 8px 0; }
+        .message .file-info { display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px; margin: 8px 0; }
+        .message .file-info .icon { font-size: 24px; }
+        .message .file-info .details { flex: 1; }
+        .message .file-info .name { font-weight: bold; font-size: 13px; }
+        .message .file-info .size { font-size: 11px; opacity: 0.7; }
+        .message .file-info a { color: #4caf50; text-decoration: none; font-size: 12px; }
+        
         #typing-indicator { display: none; padding: 5px 15px; font-size: 12px; opacity: 0.7; font-style: italic; }
         
         #input-area { padding: 15px; background: #0f3460; display: flex; gap: 10px; border-top: 1px solid #1a1a2e; align-items: center; }
         body.light-theme #input-area { background: #fff; border-top: 1px solid #ddd; }
         #message-input { flex: 1; padding: 12px; border: none; border-radius: 6px; background: #1a1a2e; color: #fff; font-size: 14px; }
         body.light-theme #message-input { background: #f0f0f0; color: #333; }
-        #emoji-btn, #attach-btn, #voice-btn, #export-btn { padding: 12px; background: transparent; border: 1px solid #e94560; color: #e94560; border-radius: 6px; cursor: pointer; font-size: 18px; }
+        #emoji-btn, #attach-btn, #voice-btn { padding: 12px; background: transparent; border: 1px solid #e94560; color: #e94560; border-radius: 6px; cursor: pointer; font-size: 18px; }
         #send-btn { padding: 12px 20px; background: #e94560; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; }
         
         #emoji-picker { display: none; position: absolute; bottom: 70px; left: 15px; background: #0f3460; padding: 10px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 100; }
         body.light-theme #emoji-picker { background: #fff; }
         .emoji-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; }
-        .emoji-item { font-size: 24px; cursor: pointer; padding: 5px; border-radius: 4px; transition: background 0.2s; }
+        .emoji-item { font-size: 24px; cursor: pointer; padding: 5px; border-radius: 4px; }
         .emoji-item:hover { background: rgba(255,255,255,0.1); }
         
         #file-input, #voice-input { display: none; }
         
-        /* Модальное окно для звонков */
         #call-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 3000; justify-content: center; align-items: center; flex-direction: column; }
         #call-modal video { max-width: 90%; max-height: 70%; border-radius: 12px; }
         #call-controls { margin-top: 20px; display: flex; gap: 15px; }
@@ -107,7 +116,6 @@
         #accept-call { background: #4caf50; color: #fff; }
         #reject-call, #end-call { background: #f44336; color: #fff; }
         
-        /* Модальное окно для изображений */
         #image-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 2000; justify-content: center; align-items: center; }
         #image-modal img { max-width: 90%; max-height: 90%; border-radius: 8px; }
         #image-modal .close { position: absolute; top: 20px; right: 30px; font-size: 40px; color: #fff; cursor: pointer; }
