@@ -505,4 +505,57 @@ function hideCallModal() {
     document.getElementById('local-video').srcObject = null;
     document.getElementById('remote-video').srcObject = null;
     incomingCallData = null;
+}// === ДИЗАЙН И UX УЛУЧШЕНИЯ ===
+
+// 1. Скрываем Splash Screen после загрузки
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        const splash = document.getElementById('splash-screen');
+        if (splash) splash.classList.add('hidden');
+    }, 1500); // Показываем 1.5 секунды
+});
+
+// 2. Функция для генерации цвета и инициалов
+function getAvatarHTML(username, size = 40) {
+    const colors = ['#e94560', '#4caf50', '#2196f3', '#ff9800', '#9c27b0', '#00bcd4'];
+    const initial = username ? username.charAt(0).toUpperCase() : '?';
+    // Генерируем стабильный цвет на основе имени
+    let hash = 0;
+    for (let i = 0; i < username.length; i++) {
+        hash = username.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const color = colors[Math.abs(hash) % colors.length];
+    
+    return `<div class="avatar" style="width:${size}px; height:${size}px; background:${color}; font-size:${size/2.5}px;">${initial}</div>`;
 }
+
+// 3. Обновляем отображение пользователей с аватарками
+function renderUsersList() {
+    const list = document.getElementById('users-list');
+    list.innerHTML = '';
+    allUsers.forEach(user => {
+        const isOnline = onlineUsers.has(user._id);
+        const isActive = currentDmPartner && currentDmPartner.userId === user._id;
+        const item = document.createElement('div');
+        item.className = `user-item ${isActive ? 'active' : ''}`;
+        item.style.display = 'flex';
+        item.style.alignItems = 'center';
+        item.style.gap = '12px';
+        item.innerHTML = `
+            ${getAvatarHTML(user.username, 40)}
+            <div style="flex:1; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <div class="username">${user.username}</div>
+                    <div class="status ${isOnline ? '' : 'offline'}">${isOnline ? '● онлайн' : '○ оффлайн'}</div>
+                </div>
+                ${isOnline ? `<button onclick="startCall('${user._id}', 'video'); event.stopPropagation();" style="background:#4caf50;border:none;color:#fff;padding:6px;border-radius:50%;cursor:pointer;font-size:14px">📹</button>` : ''}
+            </div>
+        `;
+        item.onclick = () => openDm(user._id, user.username);
+        list.appendChild(item);
+    });
+}
+
+// 4. Добавляем аватарки к сообщениям (опционально, для красоты)
+// Найдите в коде функцию appendMessage и добавьте аватарку, если хотите, 
+// но пока оставим как есть, чтобы не перегружать код.

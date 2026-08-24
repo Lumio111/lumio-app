@@ -1,0 +1,16 @@
+{
+  "name": "Lumio Messenger",
+  "short_name": "Lumio",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#16213e",
+  "theme_color": "#16213e",
+  "description": "Быстрый и безопасный мессенджер с видеозвонками",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3062/3062634.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
