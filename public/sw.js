@@ -1,1 +1,1 @@
-﻿   // Service Worker отключён
+﻿// off
