@@ -603,4 +603,145 @@ document.addEventListener('DOMContentLoaded', () => {
     icons.forEach(icon => {
         icon.classList.add('icon-animated');
     });
-});
+});// === ЭТАП 2: ФУНКЦИОНАЛЬНЫЕ УЛУЧШЕНИЯ ===
+
+// 10. Система Toast-уведомлений
+function showToast(message, type = 'info', icon = 'ℹ️') {
+    let container = document.querySelector('.toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
+    
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `
+        <span class="toast-icon">${icon}</span>
+        <span class="toast-message">${message}</span>
+        <span class="toast-close" onclick="this.parentElement.remove()"></span>
+    `;
+    
+    container.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.animation = 'toastFadeOut 0.4s ease forwards';
+        setTimeout(() => toast.remove(), 400);
+    }, 3500);
+}
+
+// 6. Звуковые эффекты (Web Audio API)
+function playAppSound(type) {
+    try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        if (type === 'send') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+        } else if (type === 'receive') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.15);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+        } else if (type === 'call') {
+            osc.type = 'square';
+            osc.frequency.value = 440;
+            gain.gain.value = 0.05;
+            osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+        }
+    } catch (e) {}
+}
+
+// 5. Скелетоны загрузки
+function showSkeletons(count = 3) {
+    const messagesDiv = document.getElementById('messages');
+    messagesDiv.innerHTML = '';
+    for (let i = 0; i < count; i++) {
+        const skel = document.createElement('div');
+        skel.className = 'message';
+        skel.style.background = 'transparent';
+        skel.style.boxShadow = 'none';
+        skel.innerHTML = `
+            <div style="display:flex; gap:10px; align-items:center;">
+                <div class="skeleton skeleton-avatar"></div>
+                <div style="flex:1;">
+                    <div class="skeleton skeleton-text"></div>
+                    <div class="skeleton skeleton-text short"></div>
+                </div>
+            </div>
+        `;
+        messagesDiv.appendChild(skel);
+    }
+}
+
+// 3. Обновленный визуальный пикер эмодзи
+function updateEmojiPicker() {
+    const picker = document.getElementById('emoji-picker');
+    picker.innerHTML = `
+        <div class="emoji-picker-container">
+            <div class="emoji-category-title">Смайлы</div>
+            <span onclick="addEmoji('😀')">😀</span><span onclick="addEmoji('😂')">😂</span>
+            <span onclick="addEmoji('🥰')"></span><span onclick="addEmoji('')">😍</span>
+            <span onclick="addEmoji('😎')">😎</span><span onclick="addEmoji('🤔')"></span>
+            <span onclick="addEmoji('😢')">😢</span><span onclick="addEmoji('😡')">😡</span>
+            <span onclick="addEmoji('🥳')">🥳</span><span onclick="addEmoji('😴')">😴</span>
+            <span onclick="addEmoji('🤮')">🤮</span><span onclick="addEmoji('🤯')">🤯</span>
+            
+            <div class="emoji-category-title">Жесты</div>
+            <span onclick="addEmoji('👍')">👍</span><span onclick="addEmoji('👎')"></span>
+            <span onclick="addEmoji('👏')">👏</span><span onclick="addEmoji('🙏')"></span>
+            <span onclick="addEmoji('🤝')">🤝</span><span onclick="addEmoji('💪')">💪</span>
+            <span onclick="addEmoji('✌️')">✌️</span><span onclick="addEmoji('🤞')">🤞</span>
+            
+            <div class="emoji-category-title">Сердца и любовь</div>
+            <span onclick="addEmoji('❤️')">❤️</span><span onclick="addEmoji('')">🧡</span>
+            <span onclick="addEmoji('💛')">💛</span><span onclick="addEmoji('💚')"></span>
+            <span onclick="addEmoji('💙')">💙</span><span onclick="addEmoji('💜')">💜</span>
+            <span onclick="addEmoji('🖤')">🖤</span><span onclick="addEmoji('🤍')">🤍</span>
+            <span onclick="addEmoji('💯')">💯</span><span onclick="addEmoji('💥')">💥</span>
+            <span onclick="addEmoji('✨')">✨</span><span onclick="addEmoji('')">🔥</span>
+            
+            <div class="emoji-category-title">Объекты</div>
+            <span onclick="addEmoji('🎉')">🎉</span><span onclick="addEmoji('🎁')"></span>
+            <span onclick="addEmoji('🏆')">🏆</span><span onclick="addEmoji('🚀')"></span>
+            <span onclick="addEmoji('💡')">💡</span><span onclick="addEmoji('📱')"></span>
+            <span onclick="addEmoji('💻')">💻</span><span onclick="addEmoji('⌚')">⌚</span>
+        </div>
+    `;
+}
+// Запускаем обновление пикера при загрузке
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', updateEmojiPicker);
+} else {
+    updateEmojiPicker();
+}
+
+// 4. Добавляем галочки к своим сообщениям
+const originalAppendMessage = appendMessage;
+appendMessage = function(msg) {
+    originalAppendMessage(msg);
+    if (msg.from === currentUserId) {
+        const msgDiv = document.querySelector(`[data-message-id="${msg.id}"]`);
+        if (msgDiv && !msgDiv.querySelector('.message-status')) {
+            const timeDiv = msgDiv.querySelector('.time');
+            if (timeDiv) {
+                const status = document.createElement('span');
+                status.className = 'message-status status-sent';
+                status.textContent = '✓';
+                timeDiv.appendChild(status);
+            }
+        }
+    }
+};
