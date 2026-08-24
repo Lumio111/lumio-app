@@ -8,7 +8,6 @@
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: #fff; height: 100vh; overflow: hidden; }
         
-        /* Экран авторизации */
         #auth-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #16213e; display: flex; justify-content: center; align-items: center; z-index: 1000; }
         .auth-box { background: #0f3460; padding: 30px; border-radius: 12px; width: 300px; text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
         .auth-box h2 { margin-bottom: 20px; color: #e94560; }
@@ -20,10 +19,8 @@
         .auth-box button:hover { background: #ff2e63; }
         .error-msg { color: #ff6b6b; font-size: 14px; margin-top: 10px; min-height: 20px; }
 
-        /* Основное приложение */
         #chat-app { display: none; height: 100vh; flex-direction: row; }
         
-        /* Боковая панель */
         #sidebar { width: 280px; background: #0f3460; display: flex; flex-direction: column; border-right: 1px solid #1a1a2e; }
         #sidebar-header { padding: 15px; background: #16213e; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1a1a2e; }
         #sidebar-header h3 { color: #e94560; }
@@ -40,9 +37,7 @@
         .user-item .username { font-weight: bold; }
         .user-item .status { font-size: 11px; color: #4caf50; }
         .user-item .status.offline { color: #888; }
-        .unread-badge { background: #e94560; color: #fff; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; }
         
-        /* Основная область чата */
         #main-chat { flex: 1; display: flex; flex-direction: column; }
         #chat-header { padding: 15px; background: #0f3460; border-bottom: 1px solid #1a1a2e; display: flex; justify-content: space-between; align-items: center; }
         #chat-header h3 { color: #fff; }
@@ -52,17 +47,39 @@
         .message { background: #0f3460; padding: 10px 15px; border-radius: 12px; max-width: 70%; word-wrap: break-word; }
         .message.own { background: #e94560; align-self: flex-end; }
         .message .meta { font-size: 11px; opacity: 0.7; margin-bottom: 4px; }
-        .message .text { font-size: 14px; }
+        .message .text { font-size: 14px; margin-bottom: 5px; }
         .message .time { font-size: 10px; opacity: 0.5; margin-top: 4px; text-align: right; }
         
-        #input-area { padding: 15px; background: #0f3460; display: flex; gap: 10px; border-top: 1px solid #1a1a2e; }
+        /* Стили для файлов */
+        .message .file-preview { margin: 8px 0; }
+        .message .file-preview img { max-width: 100%; max-height: 300px; border-radius: 8px; cursor: pointer; transition: transform 0.2s; }
+        .message .file-preview img:hover { transform: scale(1.02); }
+        .message .file-preview video { max-width: 100%; max-height: 300px; border-radius: 8px; }
+        .message .file-preview audio { width: 100%; margin: 8px 0; }
+        .message .file-info { display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px; margin: 8px 0; }
+        .message .file-info .icon { font-size: 24px; }
+        .message .file-info .details { flex: 1; }
+        .message .file-info .name { font-weight: bold; font-size: 13px; }
+        .message .file-info .size { font-size: 11px; opacity: 0.7; }
+        .message .file-info a { color: #4caf50; text-decoration: none; font-size: 12px; }
+        .message .file-info a:hover { text-decoration: underline; }
+        
+        #input-area { padding: 15px; background: #0f3460; display: flex; gap: 10px; border-top: 1px solid #1a1a2e; align-items: center; }
         #message-input { flex: 1; padding: 12px; border: none; border-radius: 6px; background: #1a1a2e; color: #fff; font-size: 14px; }
+        #attach-btn { padding: 12px; background: transparent; border: 1px solid #e94560; color: #e94560; border-radius: 6px; cursor: pointer; font-size: 18px; }
+        #attach-btn:hover { background: #e94560; color: #fff; }
         #send-btn { padding: 12px 20px; background: #e94560; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; }
         #send-btn:hover { background: #ff2e63; }
         
+        #file-input { display: none; }
+        
         #empty-state { flex: 1; display: flex; align-items: center; justify-content: center; color: #666; font-size: 16px; }
         
-        /* Адаптивность для мобильных */
+        /* Модальное окно для просмотра изображений */
+        #image-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 2000; justify-content: center; align-items: center; }
+        #image-modal img { max-width: 90%; max-height: 90%; border-radius: 8px; }
+        #image-modal .close { position: absolute; top: 20px; right: 30px; font-size: 40px; color: #fff; cursor: pointer; }
+        
         @media (max-width: 768px) {
             #sidebar { width: 100%; position: absolute; z-index: 100; height: 100%; transform: translateX(-100%); transition: transform 0.3s; }
             #sidebar.open { transform: translateX(0); }
@@ -73,7 +90,6 @@
 </head>
 <body>
 
-    <!-- Экран Входа / Регистрации -->
     <div id="auth-overlay">
         <div class="auth-box">
             <h2>🔐 Lumio</h2>
@@ -98,9 +114,7 @@
         </div>
     </div>
 
-    <!-- Основное приложение -->
     <div id="chat-app">
-        <!-- Боковая панель -->
         <div id="sidebar">
             <div id="sidebar-header">
                 <h3>💬 Lumio</h3>
@@ -113,7 +127,6 @@
             <div id="users-list"></div>
         </div>
         
-        <!-- Основная область чата -->
         <div id="main-chat">
             <div id="chat-header">
                 <button id="menu-toggle" onclick="toggleSidebar()">☰</button>
@@ -125,22 +138,30 @@
             </div>
             <div id="messages"></div>
             <div id="input-area">
+                <button id="attach-btn" onclick="document.getElementById('file-input').click()">📎</button>
+                <input type="file" id="file-input" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.zip,.rar" onchange="handleFileSelect(event)">
                 <input type="text" id="message-input" placeholder="Введите сообщение...">
                 <button id="send-btn">➤</button>
             </div>
         </div>
     </div>
 
+    <!-- Модальное окно для просмотра изображений -->
+    <div id="image-modal" onclick="closeImageModal()">
+        <span class="close">&times;</span>
+        <img id="modal-image" src="">
+    </div>
+
     <script>
         let ws;
         let currentUsername = '';
         let currentUserId = '';
-        let currentMode = 'general'; // 'general' или 'dm'
-        let currentDmPartner = null; // { userId, username }
+        let currentMode = 'general';
+        let currentDmPartner = null;
         let allUsers = [];
         let onlineUsers = new Set();
+        let selectedFile = null;
 
-        // Проверка при загрузке
         window.addEventListener('DOMContentLoaded', () => {
             const token = localStorage.getItem('lumio_token');
             const username = localStorage.getItem('lumio_username');
@@ -153,7 +174,6 @@
             }
         });
 
-        // Переключение вкладок Вход / Регистрация
         function showTab(tab) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             event.target.classList.add('active');
@@ -166,7 +186,6 @@
             }
         }
 
-        // Вход
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const username = document.getElementById('login-username').value;
@@ -196,7 +215,6 @@
             }
         });
 
-        // Регистрация
         document.getElementById('register-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const username = document.getElementById('reg-username').value;
@@ -226,7 +244,6 @@
             }
         });
 
-        // Выход
         function logout() {
             localStorage.removeItem('lumio_token');
             localStorage.removeItem('lumio_username');
@@ -234,7 +251,6 @@
             location.reload();
         }
 
-        // Подключение WebSocket
         function connectWebSocket(token) {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             ws = new WebSocket(`${protocol}//${window.location.host}`);
@@ -278,13 +294,13 @@
                 case 'history':
                     const messagesDiv = document.getElementById('messages');
                     messagesDiv.innerHTML = '';
-                    msg.messages.forEach(m => appendMessage(m.fromName, m.text, m.timestamp, m.from === currentUserId));
+                    msg.messages.forEach(m => appendMessage(m));
                     messagesDiv.scrollTop = messagesDiv.scrollHeight;
                     break;
                 
                 case 'chat_message':
                     if (currentMode === 'general') {
-                        appendMessage(msg.message.fromName, msg.message.text, msg.message.timestamp, msg.message.from === currentUserId);
+                        appendMessage(msg.message);
                         const messagesDiv = document.getElementById('messages');
                         messagesDiv.scrollTop = messagesDiv.scrollHeight;
                     }
@@ -294,10 +310,7 @@
                     currentDmPartner = msg.withUser;
                     const dmDiv = document.getElementById('messages');
                     dmDiv.innerHTML = '';
-                    msg.messages.forEach(m => {
-                        const isOwn = m.from === currentUserId;
-                        appendMessage(isOwn ? 'Вы' : m.fromName, m.text, m.timestamp, isOwn);
-                    });
+                    msg.messages.forEach(m => appendMessage(m));
                     dmDiv.scrollTop = dmDiv.scrollHeight;
                     document.getElementById('chat-title').textContent = `💬 ${msg.withUser.username}`;
                     document.getElementById('chat-info').textContent = 'Личная переписка';
@@ -305,21 +318,18 @@
                 
                 case 'new_dm':
                     if (currentMode === 'dm' && currentDmPartner && currentDmPartner.userId === msg.message.from) {
-                        appendMessage(msg.message.fromName, msg.message.text, msg.message.timestamp, false);
+                        appendMessage(msg.message);
                         const dmDiv = document.getElementById('messages');
                         dmDiv.scrollTop = dmDiv.scrollHeight;
                     }
-                    // Обновляем список пользователей (чтобы показать непрочитанные)
                     ws.send(JSON.stringify({ type: 'get_unread_count' }));
                     break;
                 
                 case 'dm_sent':
-                    // Сообщение успешно отправлено
                     break;
             }
         }
 
-        // Переключение режимов
         function switchMode(mode) {
             currentMode = mode;
             document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
@@ -337,12 +347,10 @@
             }
         }
 
-        // Загрузка общего чата
         function loadGeneralChat() {
             ws.send(JSON.stringify({ type: 'join_room', roomId: 'general' }));
         }
 
-        // Отрисовка списка пользователей
         function renderUsersList() {
             const list = document.getElementById('users-list');
             list.innerHTML = '';
@@ -365,7 +373,6 @@
             });
         }
 
-        // Открыть личную переписку
         function openDm(userId, username) {
             currentMode = 'dm';
             document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
@@ -373,13 +380,71 @@
             
             ws.send(JSON.stringify({ type: 'get_dm_history', withUserId: userId }));
             
-            // Закрываем боковую панель на мобильных
             if (window.innerWidth <= 768) {
                 document.getElementById('sidebar').classList.remove('open');
             }
         }
 
-        // Отправка сообщения
+        // Обработка выбора файла
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Проверка размера (максимум 10MB)
+            if (file.size > 10 * 1024 * 1024) {
+                alert('Файл слишком большой. Максимум 10MB.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                selectedFile = {
+                    data: e.target.result,
+                    name: file.name,
+                    size: file.size,
+                    type: file.type
+                };
+                
+                // Отправляем файл сразу
+                sendFile();
+            };
+            reader.readAsDataURL(file);
+            
+            // Сбрасываем input
+            event.target.value = '';
+        }
+
+        function sendFile() {
+            if (!selectedFile || !ws || ws.readyState !== 1) return;
+
+            let fileType = 'file';
+            if (selectedFile.type.startsWith('image/')) fileType = 'image';
+            else if (selectedFile.type.startsWith('video/')) fileType = 'video';
+            else if (selectedFile.type.startsWith('audio/')) fileType = 'audio';
+
+            const messageData = {
+                fileType: fileType,
+                fileName: selectedFile.name,
+                fileData: selectedFile.data,
+                fileSize: selectedFile.size
+            };
+
+            if (currentMode === 'general') {
+                ws.send(JSON.stringify({
+                    type: 'chat_message',
+                    ...messageData
+                }));
+            } else if (currentMode === 'dm' && currentDmPartner) {
+                ws.send(JSON.stringify({
+                    type: 'send_dm',
+                    toUserId: currentDmPartner.userId,
+                    ...messageData
+                }));
+            }
+
+            selectedFile = null;
+        }
+
         document.getElementById('send-btn').addEventListener('click', sendMessage);
         document.getElementById('message-input').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') sendMessage();
@@ -393,45 +458,77 @@
             if (currentMode === 'general') {
                 ws.send(JSON.stringify({
                     type: 'chat_message',
-                    text: text,
-                    encrypted: false
+                    text: text
                 }));
             } else if (currentMode === 'dm' && currentDmPartner) {
                 ws.send(JSON.stringify({
                     type: 'send_dm',
                     toUserId: currentDmPartner.userId,
-                    text: text,
-                    encrypted: false
+                    text: text
                 }));
-                // Сразу показываем свое сообщение
-                appendMessage('Вы', text, Date.now(), true);
-                const messagesDiv = document.getElementById('messages');
-                messagesDiv.scrollTop = messagesDiv.scrollHeight;
             }
             
             input.value = '';
         }
 
-        // Добавление сообщения в UI
-        function appendMessage(username, text, timestamp, isOwn) {
+        function appendMessage(msg) {
             const messagesDiv = document.getElementById('messages');
             const emptyState = document.getElementById('empty-state');
             if (emptyState) emptyState.remove();
             
+            const isOwn = msg.from === currentUserId;
             const msgDiv = document.createElement('div');
             msgDiv.className = `message ${isOwn ? 'own' : ''}`;
             
-            const time = new Date(timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+            const time = new Date(msg.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
             
-            msgDiv.innerHTML = `
-                <div class="meta">${username}</div>
-                <div class="text">${text}</div>
-                <div class="time">${time}</div>
-            `;
+            let content = `<div class="meta">${msg.fromName}</div>`;
+            
+            if (msg.text) {
+                content += `<div class="text">${msg.text}</div>`;
+            }
+            
+            // Отображение файла
+            if (msg.fileData) {
+                content += '<div class="file-preview">';
+                
+                if (msg.fileType === 'image') {
+                    content += `<img src="${msg.fileData}" alt="${msg.fileName}" onclick="openImageModal('${msg.fileData}')">`;
+                } else if (msg.fileType === 'video') {
+                    content += `<video controls src="${msg.fileData}"></video>`;
+                } else if (msg.fileType === 'audio') {
+                    content += `<audio controls src="${msg.fileData}"></audio>`;
+                } else {
+                    const sizeKB = (msg.fileSize / 1024).toFixed(1);
+                    content += `
+                        <div class="file-info">
+                            <div class="icon">📄</div>
+                            <div class="details">
+                                <div class="name">${msg.fileName}</div>
+                                <div class="size">${sizeKB} KB</div>
+                            </div>
+                            <a href="${msg.fileData}" download="${msg.fileName}">Скачать</a>
+                        </div>
+                    `;
+                }
+                
+                content += '</div>';
+            }
+            
+            content += `<div class="time">${time}</div>`;
+            msgDiv.innerHTML = content;
             messagesDiv.appendChild(msgDiv);
         }
 
-        // Мобильное меню
+        function openImageModal(src) {
+            document.getElementById('modal-image').src = src;
+            document.getElementById('image-modal').style.display = 'flex';
+        }
+
+        function closeImageModal() {
+            document.getElementById('image-modal').style.display = 'none';
+        }
+
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('open');
         }

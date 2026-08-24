@@ -7,7 +7,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '50mb' })); // Увеличиваем лимит для файлов
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 
@@ -41,7 +41,12 @@ const messageSchema = new mongoose.Schema({
     encrypted: Boolean,
     isDirect: Boolean,
     read: { type: Boolean, default: false },
-    timestamp: Number
+    timestamp: Number,
+    // Новые поля для файлов
+    fileType: String, // 'image', 'video', 'audio', 'file'
+    fileName: String,
+    fileData: String, // base64 данные
+    fileSize: Number
 });
 const Message = mongoose.model('Message', messageSchema);
 // ==============================================
@@ -86,8 +91,8 @@ app.post('/api/login', async (req, res) => {
 });
 // ==============================================
 
-const users = new Map(); // ws -> { userId, username }
-const rooms = new Map(); // roomId -> Set of ws
+const users = new Map();
+const rooms = new Map();
 
 wss.on('connection', (ws) => {
     ws.on('message', async (data) => {
@@ -101,13 +106,9 @@ wss.on('connection', (ws) => {
                     ws.send(JSON.stringify({ type: 'auth_success', username: decoded.username, userId: decoded.userId }));
                     console.log(`✅ User authenticated: ${decoded.username}`);
                     
-                    // Обновляем lastSeen
                     await User.findByIdAndUpdate(decoded.userId, { lastSeen: new Date() });
-                    
-                    // Уведомляем всех о новом пользователе
                     broadcastAll({ type: 'user_online', username: decoded.username, userId: decoded.userId });
                     
-                    // Отправляем список всех пользователей
                     const allUsers = await User.find({}, 'username lastSeen').lean();
                     ws.send(JSON.stringify({ type: 'users_list', users: allUsers }));
                 } catch (e) {
@@ -167,18 +168,23 @@ async function handleMessage(ws, msg) {
                 id: uuidv4(),
                 from: user.userId,
                 fromName: user.username,
-                text: msg.text,
+                text: msg.text || '',
                 encrypted: msg.encrypted || false,
                 timestamp: Date.now(),
                 roomId: ws.roomId,
-                isDirect: false
+                isDirect: false,
+                // Поля для файлов
+                fileType: msg.fileType || null,
+                fileName: msg.fileName || null,
+                fileData: msg.fileData || null,
+                fileSize: msg.fileSize || null
             };
             const newMessage = new Message(chatMsg);
             await newMessage.save();
             broadcast(ws.roomId, { type: 'chat_message', message: chatMsg });
             break;
         
-        // ========== ЛИЧНЫЕ СООБЩЕНИЯ ==========
+        // ========== ЛИЧНЫЕ СООБЩЕНИЯ С ФАЙЛАМИ ==========
         case 'send_dm':
             const targetUser = await User.findById(msg.toUserId);
             if (!targetUser) return;
@@ -189,22 +195,25 @@ async function handleMessage(ws, msg) {
                 fromName: user.username,
                 to: msg.toUserId,
                 toName: targetUser.username,
-                text: msg.text,
+                text: msg.text || '',
                 encrypted: msg.encrypted || false,
                 timestamp: Date.now(),
                 isDirect: true,
-                read: false
+                read: false,
+                // Поля для файлов
+                fileType: msg.fileType || null,
+                fileName: msg.fileName || null,
+                fileData: msg.fileData || null,
+                fileSize: msg.fileSize || null
             };
             const newDm = new Message(dmMsg);
             await newDm.save();
             
-            // Отправляем получателю, если он онлайн
             const targetWs = Array.from(users.keys()).find(w => w.userData && w.userData.userId === msg.toUserId);
             if (targetWs && targetWs.readyState === 1) {
                 targetWs.send(JSON.stringify({ type: 'new_dm', message: dmMsg }));
             }
             
-            // Подтверждаем отправителю
             ws.send(JSON.stringify({ type: 'dm_sent', message: dmMsg }));
             break;
             
@@ -213,7 +222,6 @@ async function handleMessage(ws, msg) {
             const otherUser = await User.findById(otherUserId);
             if (!otherUser) return;
             
-            // Загружаем историю переписки между двумя пользователями
             const dmHistory = await Message.find({
                 isDirect: true,
                 $or: [
@@ -222,7 +230,6 @@ async function handleMessage(ws, msg) {
                 ]
             }).sort({ timestamp: 1 }).limit(100).lean();
             
-            // Помечаем входящие сообщения как прочитанные
             await Message.updateMany(
                 { from: otherUserId, to: user.userId, read: false },
                 { read: true }
@@ -271,7 +278,7 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log('');
     console.log('========================================');
-    console.log('  LUMIO ULTIMATE SERVER (WITH DM)');
+    console.log('  LUMIO ULTIMATE SERVER (WITH FILES)');
     console.log('========================================');
     console.log('  HTTP: http://localhost:' + PORT);
     console.log('  WS:   ws://localhost:' + PORT);
