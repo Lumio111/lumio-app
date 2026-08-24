@@ -2,7 +2,7 @@
 let ws;
 let currentUsername = '';
 let currentUserId = '';
-let currentMode = 'general'; // 'general', 'dm', 'rooms'
+let currentMode = 'general';
 let currentDmPartner = null;
 let currentRoomId = 'general';
 let allUsers = [];
@@ -10,11 +10,15 @@ let onlineUsers = new Set();
 let allRooms = [];
 let selectedFile = null;
 let audioCtx;
-let editingMessageId = null; // ID сообщения, которое сейчас редактируется
+let editingMessageId = null;
+let typingTimeout = null;
+let isTyping = false;
+let peerConnection = null;
+let localStream = null;
+let incomingCallData = null;
 
 // ============ ИНИЦИАЛИЗАЦИЯ ============
 window.addEventListener('DOMContentLoaded', () => {
-    // Загружаем тему из localStorage
     const savedTheme = localStorage.getItem('lumio_theme');
     if (savedTheme === 'light') {
         document.body.classList.add('light-theme');
@@ -210,28 +214,68 @@ function handleServerMessage(msg) {
             }
             break;
         
-        case 'dm_sent':
-            // Сообщение успешно отправлено, показываем его сразу
-            break;
-        
-        // Реакции
         case 'reaction_update':
             updateReactionsInUI(msg.messageId, msg.reactions);
             break;
         
-        // Редактирование
         case 'message_edited':
             updateMessageTextInUI(msg.messageId, msg.newText);
             break;
         
-        // Удаление
         case 'message_deleted':
             removeMessageFromUI(msg.messageId);
             break;
         
-        // Результаты поиска
         case 'search_results':
             showSearchResults(msg.messages);
+            break;
+        
+        case 'pinned_message':
+            showPinnedMessage(msg.message);
+            break;
+        
+        case 'message_pinned':
+            showPinnedMessage(msg.message);
+            break;
+        
+        case 'message_unpinned':
+            hidePinnedMessage();
+            break;
+        
+        case 'user_typing':
+            showTypingIndicator(msg.username);
+            break;
+        
+        case 'user_stop_typing':
+            hideTypingIndicator(msg.userId);
+            break;
+        
+        case 'mention_notification':
+            playNotificationSound();
+            showBrowserNotification('Вас упомянули!', msg.message.text);
+            break;
+        
+        case 'chat_export':
+            downloadChatExport(msg.messages);
+            break;
+        
+        case 'incoming_call':
+            handleIncomingCall(msg);
+            break;
+        
+        case 'call_accept':
+            handleCallAccept();
+            break;
+        
+        case 'call_reject':
+        case 'call_end':
+            handleCallEnd();
+            break;
+        
+        case 'webrtc_offer':
+        case 'webrtc_answer':
+        case 'webrtc_ice':
+            handleWebRTCMessage(msg);
             break;
     }
 }
@@ -279,14 +323,16 @@ function renderUsersList() {
         
         const item = document.createElement('div');
         item.className = `user-item ${isActive ? 'active' : ''}`;
-        item.onclick = () => openDm(user._id, user.username);
-        
         item.innerHTML = `
-            <div>
-                <div class="username">${user.username}</div>
-                <div class="status ${isOnline ? '' : 'offline'}">${isOnline ? '● онлайн' : '○ оффлайн'}</div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div class="username">${user.username}</div>
+                    <div class="status ${isOnline ? '' : 'offline'}">${isOnline ? '● онлайн' : '○ оффлайн'}</div>
+                </div>
+                ${isOnline ? `<button onclick="startCall('${user._id}', 'video'); event.stopPropagation();" style="background: #4caf50; border: none; color: #fff; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;">📹</button>` : ''}
             </div>
         `;
+        item.onclick = () => openDm(user._id, user.username);
         list.appendChild(item);
     });
 }
@@ -341,16 +387,23 @@ function createRoom() {
     const description = prompt('Описание (необязательно):') || '';
     
     ws.send(JSON.stringify({
-        type: 'create_room',
-        name: name,
-        description: description
-    }));
-}
-
-// ============ ОТПРАВКА СООБЩЕНИЙ ============
+        type: 'create_room',// ============ ОТПРАВКА СООБЩЕНИЙ ============
 document.getElementById('send-btn').addEventListener('click', sendMessage);
 document.getElementById('message-input').addEventListener('keypress', (e) => {
     if (e.key === 'Enter') sendMessage();
+});
+
+// Индикатор "печатает..."
+document.getElementById('message-input').addEventListener('input', () => {
+    if (!isTyping) {
+        isTyping = true;
+        ws.send(JSON.stringify({ type: 'typing_start' }));
+    }
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
+        isTyping = false;
+        ws.send(JSON.stringify({ type: 'typing_stop' }));
+    }, 2000);
 });
 
 function sendMessage() {
@@ -358,7 +411,6 @@ function sendMessage() {
     const text = input.value.trim();
     if (!text || !ws || ws.readyState !== 1) return;
 
-    // Если редактируем сообщение
     if (editingMessageId) {
         ws.send(JSON.stringify({
             type: 'edit_message',
@@ -367,7 +419,7 @@ function sendMessage() {
         }));
         input.value = '';
         editingMessageId = null;
-        input.placeholder = 'Введите сообщение...';
+        input.placeholder = 'Введите сообщение... (@username для упоминания)';
         return;
     }
 
@@ -375,7 +427,6 @@ function sendMessage() {
         ws.send(JSON.stringify({ type: 'chat_message', text: text }));
     } else if (currentMode === 'dm' && currentDmPartner) {
         ws.send(JSON.stringify({ type: 'send_dm', toUserId: currentDmPartner.userId, text: text }));
-        // Сразу показываем свое сообщение
         const tempMsg = {
             id: 'temp_' + Date.now(),
             from: currentUserId,
@@ -388,11 +439,12 @@ function sendMessage() {
         const messagesDiv = document.getElementById('messages');
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
     } else if (currentMode === 'rooms' && currentRoomId) {
-        // Для комнат используем тот же тип, но с указанием roomId
         ws.send(JSON.stringify({ type: 'chat_message', text: text }));
     }
     
     input.value = '';
+    ws.send(JSON.stringify({ type: 'typing_stop' }));
+    isTyping = false;
 }
 
 // ============ ФАЙЛЫ ============
@@ -412,6 +464,29 @@ function handleFileSelect(event) {
             name: file.name,
             size: file.size,
             type: file.type
+        };
+        sendFile();
+    };
+    reader.readAsDataURL(file);
+    event.target.value = '';
+}
+
+function handleVoiceSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+        alert('Голосовое сообщение слишком большое. Максимум 5MB.');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        selectedFile = {
+            data: e.target.result,
+            name: 'voice_' + new Date().toISOString().slice(0,19).replace(/[:]/g,'-') + '.webm',
+            size: file.size,
+            type: file.type || 'audio/webm'
         };
         sendFile();
     };
@@ -457,10 +532,14 @@ function appendMessage(msg) {
     
     const time = new Date(msg.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
     
+    // Подсветка упоминаний @username
+    let displayText = msg.text || '';
+    displayText = displayText.replace(/@(\w+)/g, '<span class="mention">@$1</span>');
+    
     let content = `<div class="meta">${msg.fromName}</div>`;
     
-    if (msg.text) {
-        content += `<div class="text">${msg.text}</div>`;
+    if (displayText) {
+        content += `<div class="text">${displayText}</div>`;
     }
     
     if (msg.edited) {
@@ -491,7 +570,6 @@ function appendMessage(msg) {
         content += '</div>';
     }
     
-    // Реакции
     if (msg.reactions && msg.reactions.length > 0) {
         content += '<div class="reactions">';
         const emojiCounts = {};
@@ -506,12 +584,12 @@ function appendMessage(msg) {
     
     content += `<div class="time">${time}</div>`;
     
-    // Кнопки действий (только для своих сообщений)
     if (isOwn) {
         content += `
             <div class="actions">
                 <button class="action-btn" onclick="showReactionPicker('${msg.id}')">😊</button>
                 <button class="action-btn" onclick="startEdit('${msg.id}')">✏️</button>
+                <button class="action-btn" onclick="pinMessage('${msg.id}')">📌</button>
                 <button class="action-btn" onclick="deleteMessage('${msg.id}')">🗑️</button>
             </div>
         `;
@@ -586,16 +664,15 @@ function startEdit(messageId) {
     const currentText = textDiv.textContent;
     const input = document.getElementById('message-input');
     input.value = currentText;
-    input.placeholder = 'Редактирование сообщения... (Enter - сохранить, Esc - отмена)';
+    input.placeholder = 'Редактирование... (Enter - сохранить, Esc - отмена)';
     input.focus();
     
     editingMessageId = messageId;
     
-    // Добавляем обработчик Esc для отмены
     const escHandler = (e) => {
         if (e.key === 'Escape') {
             input.value = '';
-            input.placeholder = 'Введите сообщение...';
+            input.placeholder = 'Введите сообщение... (@username для упоминания)';
             editingMessageId = null;
             document.removeEventListener('keydown', escHandler);
         }
@@ -618,10 +695,9 @@ function updateMessageTextInUI(messageId, newText) {
     
     const textDiv = msgDiv.querySelector('.text');
     if (textDiv) {
-        textDiv.textContent = newText;
+        textDiv.innerHTML = newText.replace(/@(\w+)/g, '<span class="mention">@$1</span>');
     }
     
-    // Добавляем пометку "(отредактировано)"
     if (!msgDiv.querySelector('.edited')) {
         const edited = document.createElement('div');
         edited.className = 'edited';
@@ -636,6 +712,69 @@ function removeMessageFromUI(messageId) {
     if (msgDiv) {
         msgDiv.remove();
     }
+}
+
+// ============ ЗАКРЕПЛЕННЫЕ СООБЩЕНИЯ ============
+function pinMessage(messageId) {
+    ws.send(JSON.stringify({
+        type: 'pin_message',
+        messageId: messageId
+    }));
+}
+
+function unpinMessage() {
+    ws.send(JSON.stringify({
+        type: 'unpin_message',
+        roomId: currentRoomId
+    }));
+}
+
+function showPinnedMessage(message) {
+    const pinnedDiv = document.getElementById('pinned-message');
+    const pinnedText = document.getElementById('pinned-text');
+    pinnedText.textContent = message.text || '📎 Файл';
+    pinnedDiv.style.display = 'block';
+}
+
+function hidePinnedMessage() {
+    document.getElementById('pinned-message').style.display = 'none';
+}
+
+// ============ ИНДИКАТОР "ПЕЧАТАЕТ..." ============
+let typingUsers = new Map();
+
+function showTypingIndicator(username) {
+    typingUsers.set(username, Date.now());
+    updateTypingDisplay();
+}
+
+function hideTypingIndicator(userId) {
+    const user = allUsers.find(u => u._id === userId);
+    if (user) {
+        typingUsers.delete(user.username);
+        updateTypingDisplay();
+    }
+}
+
+function updateTypingDisplay() {
+    const indicator = document.getElementById('typing-indicator');
+    if (typingUsers.size === 0) {
+        indicator.style.display = 'none';
+        return;
+    }
+    
+    const names = Array.from(typingUsers.keys());
+    let text = '';
+    if (names.length === 1) {
+        text = `${names[0]} печатает...`;
+    } else if (names.length === 2) {
+        text = `${names[0]} и ${names[1]} печатают...`;
+    } else {
+        text = `${names.length} человек печатают...`;
+    }
+    
+    indicator.textContent = text;
+    indicator.style.display = 'block';
 }
 
 // ============ ПОИСК ============
@@ -669,6 +808,28 @@ function showSearchResults(messages) {
     }
     
     messages.forEach(m => appendMessage(m));
+}
+
+// ============ ЭКСПОРТ ЧАТА ============
+function exportChat() {
+    ws.send(JSON.stringify({ type: 'export_chat' }));
+}
+
+function downloadChatExport(messages) {
+    let text = `Экспорт чата Lumio\nДата: ${new Date().toLocaleString('ru-RU')}\n========================================\n\n`;
+    
+    messages.forEach(m => {
+        const time = new Date(m.timestamp).toLocaleString('ru-RU');
+        text += `[${time}] ${m.fromName}: ${m.text || '[файл]'}\n`;
+    });
+    
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `lumio_chat_${new Date().toISOString().slice(0,10)}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
 }
 
 // ============ ЭМОДЗИ ============
@@ -741,4 +902,178 @@ function closeImageModal() {
 
 function toggleSidebar() {
     document.getElementById('sidebar').classList.toggle('open');
+}
+
+// ============ ВИДЕОЗВОНКИ (WebRTC) ============
+const rtcConfig = {
+    iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' }
+    ]
+};
+
+function startCall(targetId, callType = 'video') {
+    navigator.mediaDevices.getUserMedia({ 
+        video: callType === 'video', 
+        audio: true 
+    }).then(stream => {
+        localStream = stream;
+        document.getElementById('local-video').srcObject = stream;
+        
+        peerConnection = new RTCPeerConnection(rtcConfig);
+        
+        stream.getTracks().forEach(track => {
+            peerConnection.addTrack(track, stream);
+        });
+        
+        peerConnection.ontrack = (event) => {
+            document.getElementById('remote-video').srcObject = event.streams[0];
+        };
+        
+        peerConnection.onicecandidate = (event) => {
+            if (event.candidate) {
+                ws.send(JSON.stringify({
+                    type: 'webrtc_ice',
+                    targetId: targetId,
+                    candidate: event.candidate
+                }));
+            }
+        };
+        
+        peerConnection.createOffer().then(offer => {
+            return peerConnection.setLocalDescription(offer);
+        }).then(() => {
+            ws.send(JSON.stringify({
+                type: 'webrtc_offer',
+                targetId: targetId,
+                offer: peerConnection.localDescription
+            }));
+        });
+        
+        ws.send(JSON.stringify({
+            type: 'call_request',
+            targetId: targetId,
+            callType: callType
+        }));
+        
+        showCallModal(false);
+    }).catch(err => {
+        alert('Не удалось получить доступ к камере/микрофону');
+        console.error(err);
+    });
+}
+
+function handleIncomingCall(msg) {
+    incomingCallData = msg;
+    showCallModal(true);
+}
+
+function acceptCall() {
+    navigator.mediaDevices.getUserMedia({ 
+        video: incomingCallData.callType === 'video', 
+        audio: true 
+    }).then(stream => {
+        localStream = stream;
+        document.getElementById('local-video').srcObject = stream;
+        
+        peerConnection = new RTCPeerConnection(rtcConfig);
+        
+        stream.getTracks().forEach(track => {
+            peerConnection.addTrack(track, stream);
+        });
+        
+        peerConnection.ontrack = (event) => {
+            document.getElementById('remote-video').srcObject = event.streams[0];
+        };
+        
+        peerConnection.onicecandidate = (event) => {
+            if (event.candidate) {
+                ws.send(JSON.stringify({
+                    type: 'webrtc_ice',
+                    targetId: incomingCallData.fromId,
+                    candidate: event.candidate
+                }));
+            }
+        };
+        
+        ws.send(JSON.stringify({
+            type: 'call_accept',
+            targetId: incomingCallData.fromId
+        }));
+        
+        document.getElementById('accept-call').style.display = 'none';
+        document.getElementById('reject-call').style.display = 'none';
+        document.getElementById('end-call').style.display = 'inline-block';
+    }).catch(err => {
+        alert('Не удалось получить доступ к камере/микрофону');
+        console.error(err);
+    });
+}
+
+function rejectCall() {
+    ws.send(JSON.stringify({
+        type: 'call_reject',
+        targetId: incomingCallData.fromId
+    }));
+    hideCallModal();
+}
+
+function endCall() {
+    if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+    }
+    if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        localStream = null;
+    }
+    hideCallModal();
+}
+
+function handleCallAccept() {
+    document.getElementById('accept-call').style.display = 'none';
+    document.getElementById('reject-call').style.display = 'none';
+    document.getElementById('end-call').style.display = 'inline-block';
+}
+
+function handleCallEnd() {
+    endCall();
+}
+
+function handleWebRTCMessage(msg) {
+    if (!peerConnection) return;
+    
+    if (msg.type === 'webrtc_offer') {
+        peerConnection.setRemoteDescription(new RTCSessionDescription(msg.offer));
+    } else if (msg.type === 'webrtc_answer') {
+        peerConnection.setRemoteDescription(new RTCSessionDescription(msg.answer));
+    } else if (msg.type === 'webrtc_ice') {
+        peerConnection.addIceCandidate(new RTCIceCandidate(msg.candidate));
+    }
+}
+
+function showCallModal(isIncoming) {
+    const modal = document.getElementById('call-modal');
+    modal.style.display = 'flex';
+    
+    if (isIncoming) {
+        document.getElementById('accept-call').style.display = 'inline-block';
+        document.getElementById('reject-call').style.display = 'inline-block';
+        document.getElementById('end-call').style.display = 'none';
+    } else {
+        document.getElementById('accept-call').style.display = 'none';
+        document.getElementById('reject-call').style.display = 'none';
+        document.getElementById('end-call').style.display = 'inline-block';
+    }
+}
+
+function hideCallModal() {
+    document.getElementById('call-modal').style.display = 'none';
+    document.getElementById('local-video').srcObject = null;
+    document.getElementById('remote-video').srcObject = null;
+    incomingCallData = null;
+}
+        name: name,
+        description: description
+    }));
 }

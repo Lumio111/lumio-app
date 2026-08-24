@@ -45,10 +45,11 @@ const messageSchema = new mongoose.Schema({
     fileName: String,
     fileData: String,
     fileSize: Number,
-    // Новые поля
     reactions: [{ userId: String, emoji: String }],
     edited: { type: Boolean, default: false },
-    deleted: { type: Boolean, default: false }
+    deleted: { type: Boolean, default: false },
+    pinned: { type: Boolean, default: false },
+    mentions: [String] // Массив упомянутых userId
 });
 const Message = mongoose.model('Message', messageSchema);
 
@@ -58,11 +59,12 @@ const roomSchema = new mongoose.Schema({
     description: String,
     createdBy: String,
     createdAt: Number,
-    isPrivate: { type: Boolean, default: false }
+    isPrivate: { type: Boolean, default: false },
+    pinnedMessageId: String // ID закрепленного сообщения
 });
 const Room = mongoose.model('Room', roomSchema);
 
-// API для регистрации и входа
+// API
 app.post('/api/register', async (req, res) => {
     try {
         const { username, password } = req.body;
@@ -165,9 +167,29 @@ async function handleMessage(ws, msg) {
             
             const history = await Message.find({ roomId: roomId, isDirect: { $ne: true }, deleted: { $ne: true } }).sort({ timestamp: 1 }).limit(50).lean();
             ws.send(JSON.stringify({ type: 'history', messages: history }));
+            
+            // Отправляем закрепленное сообщение если есть
+            const room = await Room.findOne({ id: roomId }).lean();
+            if (room && room.pinnedMessageId) {
+                const pinnedMsg = await Message.findOne({ id: room.pinnedMessageId }).lean();
+                if (pinnedMsg) {
+                    ws.send(JSON.stringify({ type: 'pinned_message', message: pinnedMsg }));
+                }
+            }
             break;
             
         case 'chat_message':
+            // Парсим упоминания @username
+            const mentionRegex = /@(\w+)/g;
+            const mentions = [];
+            let match;
+            while ((match = mentionRegex.exec(msg.text)) !== null) {
+                const mentionedUser = await User.findOne({ username: match[1] });
+                if (mentionedUser) {
+                    mentions.push(mentionedUser._id.toString());
+                }
+            }
+            
             const chatMsg = {
                 id: uuidv4(),
                 from: user.userId,
@@ -183,11 +205,21 @@ async function handleMessage(ws, msg) {
                 fileSize: msg.fileSize || null,
                 reactions: [],
                 edited: false,
-                deleted: false
+                deleted: false,
+                pinned: false,
+                mentions: mentions
             };
             const newMessage = new Message(chatMsg);
             await newMessage.save();
             broadcast(ws.roomId, { type: 'chat_message', message: chatMsg });
+            
+            // Уведомляем упомянутых пользователей
+            mentions.forEach(mentionedUserId => {
+                const mentionedWs = Array.from(users.keys()).find(w => w.userData && w.userData.userId === mentionedUserId);
+                if (mentionedWs && mentionedWs.readyState === 1) {
+                    mentionedWs.send(JSON.stringify({ type: 'mention_notification', message: chatMsg }));
+                }
+            });
             break;
         
         case 'send_dm':
@@ -211,7 +243,9 @@ async function handleMessage(ws, msg) {
                 fileSize: msg.fileSize || null,
                 reactions: [],
                 edited: false,
-                deleted: false
+                deleted: false,
+                pinned: false,
+                mentions: []
             };
             const newDm = new Message(dmMsg);
             await newDm.save();
@@ -250,7 +284,6 @@ async function handleMessage(ws, msg) {
             }));
             break;
         
-        // Реакции
         case 'add_reaction':
             const reactionMsg = await Message.findById(msg.messageId);
             if (!reactionMsg) return;
@@ -271,7 +304,6 @@ async function handleMessage(ws, msg) {
             }
             break;
         
-        // Редактирование
         case 'edit_message':
             const editMsg = await Message.findById(msg.messageId);
             if (!editMsg || editMsg.from !== user.userId) return;
@@ -289,7 +321,6 @@ async function handleMessage(ws, msg) {
             ws.send(JSON.stringify({ type: 'message_edited', messageId: msg.messageId, newText: msg.newText }));
             break;
         
-        // Удаление
         case 'delete_message':
             const deleteMsg = await Message.findById(msg.messageId);
             if (!deleteMsg || deleteMsg.from !== user.userId) return;
@@ -306,7 +337,28 @@ async function handleMessage(ws, msg) {
             ws.send(JSON.stringify({ type: 'message_deleted', messageId: msg.messageId }));
             break;
         
-        // Создание комнаты
+        case 'pin_message':
+            const pinMsg = await Message.findById(msg.messageId);
+            if (!pinMsg) return;
+            
+            const roomToPin = await Room.findOne({ id: pinMsg.roomId });
+            if (roomToPin) {
+                roomToPin.pinnedMessageId = pinMsg.id;
+                await roomToPin.save();
+            }
+            
+            broadcast(pinMsg.roomId, { type: 'message_pinned', message: pinMsg });
+            break;
+        
+        case 'unpin_message':
+            const roomToUnpin = await Room.findOne({ id: msg.roomId });
+            if (roomToUnpin) {
+                roomToUnpin.pinnedMessageId = null;
+                await roomToUnpin.save();
+            }
+            broadcast(msg.roomId, { type: 'message_unpinned' });
+            break;
+        
         case 'create_room':
             const newRoom = new Room({
                 id: uuidv4(),
@@ -322,7 +374,6 @@ async function handleMessage(ws, msg) {
             broadcastAll({ type: 'rooms_list', rooms: allRooms });
             break;
         
-        // Поиск
         case 'search_messages':
             const searchResults = await Message.find({
                 roomId: ws.roomId,
@@ -330,6 +381,54 @@ async function handleMessage(ws, msg) {
                 deleted: { $ne: true }
             }).limit(20).lean();
             ws.send(JSON.stringify({ type: 'search_results', messages: searchResults }));
+            break;
+        
+        case 'export_chat':
+            const exportMessages = await Message.find({
+                roomId: ws.roomId,
+                deleted: { $ne: true }
+            }).sort({ timestamp: 1 }).lean();
+            ws.send(JSON.stringify({ type: 'chat_export', messages: exportMessages }));
+            break;
+        
+        // Индикатор "печатает..."
+        case 'typing_start':
+            broadcast(ws.roomId, { type: 'user_typing', userId: user.userId, username: user.username }, ws);
+            break;
+        
+        case 'typing_stop':
+            broadcast(ws.roomId, { type: 'user_stop_typing', userId: user.userId }, ws);
+            break;
+        
+        // WebRTC для видеозвонков
+        case 'call_request':
+            const callee = Array.from(users.keys()).find(w => w.userData && w.userData.userId === msg.targetId);
+            if (callee) {
+                callee.send(JSON.stringify({ 
+                    type: 'incoming_call', 
+                    fromId: user.userId, 
+                    fromName: user.username,
+                    callType: msg.callType || 'video'
+                }));
+            }
+            break;
+        
+        case 'call_accept':
+        case 'call_reject':
+        case 'call_end':
+            const peer = Array.from(users.keys()).find(w => w.userData && w.userData.userId === msg.targetId);
+            if (peer) {
+                peer.send(JSON.stringify({ ...msg, fromId: user.userId }));
+            }
+            break;
+        
+        case 'webrtc_offer':
+        case 'webrtc_answer':
+        case 'webrtc_ice':
+            const target = Array.from(users.keys()).find(w => w.userData && w.userData.userId === msg.targetId);
+            if (target) {
+                target.send(JSON.stringify({ ...msg, fromId: user.userId }));
+            }
             break;
     }
 }
@@ -354,7 +453,7 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log('');
     console.log('========================================');
-    console.log('  LUMIO ULTIMATE SERVER (FULL FEATURED)');
+    console.log('  LUMIO ULTIMATE SERVER (MEGA UPDATE)');
     console.log('========================================');
     console.log('  HTTP: http://localhost:' + PORT);
     console.log('  WS:   ws://localhost:' + PORT);

@@ -27,9 +27,8 @@
         #sidebar-header { padding: 15px; background: #16213e; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1a1a2e; }
         body.light-theme #sidebar-header { background: #f8f8f8; border-bottom: 1px solid #ddd; }
         #sidebar-header h3 { color: #e94560; }
-        #logout-btn { background: transparent; border: 1px solid #e94560; color: #e94560; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; }
-        
-        #theme-toggle { background: transparent; border: 1px solid #4caf50; color: #4caf50; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-left: 5px; }
+        #logout-btn, #theme-toggle { background: transparent; border: 1px solid #4caf50; color: #4caf50; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-left: 5px; }
+        #logout-btn { border-color: #e94560; color: #e94560; }
         
         #chat-modes { display: flex; border-bottom: 1px solid #1a1a2e; }
         .mode-btn { flex: 1; padding: 12px; background: transparent; border: none; color: #aaa; cursor: pointer; font-weight: bold; border-bottom: 2px solid transparent; }
@@ -54,6 +53,11 @@
         #chat-header { padding: 15px; background: #0f3460; border-bottom: 1px solid #1a1a2e; display: flex; justify-content: space-between; align-items: center; }
         body.light-theme #chat-header { background: #fff; border-bottom: 1px solid #ddd; }
         
+        #pinned-message { display: none; padding: 10px 15px; background: #16213e; border-bottom: 1px solid #1a1a2e; font-size: 13px; }
+        body.light-theme #pinned-message { background: #f8f8f8; }
+        #pinned-message .pin-icon { color: #e94560; margin-right: 5px; }
+        #pinned-message .close-pin { float: right; cursor: pointer; opacity: 0.7; }
+        
         #search-box { display: none; padding: 10px; background: #16213e; border-bottom: 1px solid #1a1a2e; }
         body.light-theme #search-box { background: #f8f8f8; }
         #search-input { width: 100%; padding: 8px; border: none; border-radius: 6px; background: #1a1a2e; color: #fff; }
@@ -68,6 +72,7 @@
         .message .text { font-size: 14px; margin-bottom: 5px; }
         .message .time { font-size: 10px; opacity: 0.5; margin-top: 4px; text-align: right; }
         .message .edited { font-size: 10px; opacity: 0.5; font-style: italic; }
+        .message .mention { color: #4caf50; font-weight: bold; }
         
         .message .reactions { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
         .reaction-badge { background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 12px; font-size: 12px; cursor: pointer; }
@@ -77,11 +82,13 @@
         .message:hover .actions { display: flex; }
         .action-btn { background: rgba(0,0,0,0.3); border: none; color: #fff; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; }
         
+        #typing-indicator { display: none; padding: 5px 15px; font-size: 12px; opacity: 0.7; font-style: italic; }
+        
         #input-area { padding: 15px; background: #0f3460; display: flex; gap: 10px; border-top: 1px solid #1a1a2e; align-items: center; }
         body.light-theme #input-area { background: #fff; border-top: 1px solid #ddd; }
         #message-input { flex: 1; padding: 12px; border: none; border-radius: 6px; background: #1a1a2e; color: #fff; font-size: 14px; }
         body.light-theme #message-input { background: #f0f0f0; color: #333; }
-        #emoji-btn, #attach-btn { padding: 12px; background: transparent; border: 1px solid #e94560; color: #e94560; border-radius: 6px; cursor: pointer; font-size: 18px; }
+        #emoji-btn, #attach-btn, #voice-btn, #export-btn { padding: 12px; background: transparent; border: 1px solid #e94560; color: #e94560; border-radius: 6px; cursor: pointer; font-size: 18px; }
         #send-btn { padding: 12px 20px; background: #e94560; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; }
         
         #emoji-picker { display: none; position: absolute; bottom: 70px; left: 15px; background: #0f3460; padding: 10px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 100; }
@@ -90,7 +97,20 @@
         .emoji-item { font-size: 24px; cursor: pointer; padding: 5px; border-radius: 4px; transition: background 0.2s; }
         .emoji-item:hover { background: rgba(255,255,255,0.1); }
         
-        #file-input { display: none; }
+        #file-input, #voice-input { display: none; }
+        
+        /* Модальное окно для звонков */
+        #call-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 3000; justify-content: center; align-items: center; flex-direction: column; }
+        #call-modal video { max-width: 90%; max-height: 70%; border-radius: 12px; }
+        #call-controls { margin-top: 20px; display: flex; gap: 15px; }
+        #call-controls button { padding: 15px 30px; border: none; border-radius: 50px; cursor: pointer; font-size: 16px; font-weight: bold; }
+        #accept-call { background: #4caf50; color: #fff; }
+        #reject-call, #end-call { background: #f44336; color: #fff; }
+        
+        /* Модальное окно для изображений */
+        #image-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 2000; justify-content: center; align-items: center; }
+        #image-modal img { max-width: 90%; max-height: 90%; border-radius: 8px; }
+        #image-modal .close { position: absolute; top: 20px; right: 30px; font-size: 40px; color: #fff; cursor: pointer; }
         
         @media (max-width: 768px) {
             #sidebar { width: 100%; position: absolute; z-index: 100; height: 100%; transform: translateX(-100%); transition: transform 0.3s; }
@@ -160,7 +180,16 @@
                     <h3 id="chat-title">Общий чат</h3>
                     <div id="chat-info">Все пользователи</div>
                 </div>
-                <button onclick="toggleSearch()" style="background: transparent; border: 1px solid #e94560; color: #e94560; padding: 5px 10px; border-radius: 4px; cursor: pointer;">🔍</button>
+                <div>
+                    <button onclick="toggleSearch()" style="background: transparent; border: 1px solid #e94560; color: #e94560; padding: 5px 10px; border-radius: 4px; cursor: pointer; margin-right: 5px;">🔍</button>
+                    <button onclick="exportChat()" style="background: transparent; border: 1px solid #e94560; color: #e94560; padding: 5px 10px; border-radius: 4px; cursor: pointer;">📄</button>
+                </div>
+            </div>
+            
+            <div id="pinned-message">
+                <span class="pin-icon">📌</span>
+                <span id="pinned-text"></span>
+                <span class="close-pin" onclick="unpinMessage()">✕</span>
             </div>
             
             <div id="search-box">
@@ -168,6 +197,8 @@
             </div>
             
             <div id="messages"></div>
+            
+            <div id="typing-indicator"></div>
             
             <div id="emoji-picker">
                 <div class="emoji-grid">
@@ -185,11 +216,28 @@
             <div id="input-area">
                 <button id="emoji-btn" onclick="toggleEmojiPicker()">😊</button>
                 <button id="attach-btn" onclick="document.getElementById('file-input').click()">📎</button>
+                <button id="voice-btn" onclick="document.getElementById('voice-input').click()">🎤</button>
                 <input type="file" id="file-input" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.zip,.rar" onchange="handleFileSelect(event)">
-                <input type="text" id="message-input" placeholder="Введите сообщение...">
+                <input type="file" id="voice-input" accept="audio/*" onchange="handleVoiceSelect(event)">
+                <input type="text" id="message-input" placeholder="Введите сообщение... (@username для упоминания)">
                 <button id="send-btn">➤</button>
             </div>
         </div>
+    </div>
+
+    <div id="call-modal">
+        <video id="remote-video" autoplay playsinline></video>
+        <video id="local-video" autoplay playsinline muted style="position: absolute; top: 20px; right: 20px; width: 200px; border-radius: 8px;"></video>
+        <div id="call-controls">
+            <button id="accept-call" onclick="acceptCall()" style="display: none;">Принять</button>
+            <button id="reject-call" onclick="rejectCall()" style="display: none;">Отклонить</button>
+            <button id="end-call" onclick="endCall()" style="display: none;">Завершить</button>
+        </div>
+    </div>
+
+    <div id="image-modal" onclick="closeImageModal()">
+        <span class="close">&times;</span>
+        <img id="modal-image" src="">
     </div>
 
     <script src="app.js"></script>
