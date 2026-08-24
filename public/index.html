@@ -4,7 +4,212 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lumio Ultimate</title>
-    <style>        /* === НОВЫЕ АНИМАЦИИ И ДИЗАЙН === */
+    <style>         /* === GLASSMORPHISM ДИЗАЙН === */
+        .glass {
+            background: rgba(15, 52, 96, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        body.light-theme .glass {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Свечение кнопок */
+        #send-btn, #attach-btn, #emoji-btn, #voice-btn {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(233, 69, 96, 0.3);
+        }
+        #send-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(233, 69, 96, 0.5);
+        }
+        #attach-btn:hover, #emoji-btn:hover, #voice-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(233, 69, 96, 0.4);
+        }
+        
+        /* Улучшенные сообщения с тенью */
+        .message {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transition: transform 0.2s ease;
+        }
+        .message:hover {
+            transform: translateY(-2px);
+        }
+        .message.own {
+            box-shadow: 0 4px 12px rgba(233, 69, 96, 0.3);
+        }
+        
+        /* Градиентный фон для боковой панели */
+        #sidebar {
+            background: linear-gradient(180deg, #0f3460 0%, #16213e 100%);
+        }
+        body.light-theme #sidebar {
+            background: linear-gradient(180deg, #ffffff 0%, #f8f8f8 100%);
+        }
+        
+        /* Продвинутые анимации */
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes bounceIn {
+            0% { opacity: 0; transform: scale(0.3); }
+            50% { transform: scale(1.05); }
+            70% { transform: scale(0.95); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        
+        /* Анимация для своих сообщений (справа) */
+        .message.own {
+            animation: slideInRight 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        /* Анимация для чужих сообщений (слева) */
+        .message:not(.own) {
+            animation: slideInLeft 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        
+        /* Индикатор "печатает..." с анимацией */
+        #typing-indicator {
+            animation: fadeInUp 0.3s ease;
+        }
+        
+        /* Пульсация для новых уведомлений */
+        .unread-pulse {
+            animation: pulse 1.5s infinite;
+        }
+        
+        /* Улучшенные аватарки с градиентом */
+        .avatar {
+            width: 42px; height: 42px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; font-size: 18px; color: #fff;
+            text-transform: uppercase; flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+            position: relative;
+            border: 2px solid rgba(255,255,255,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .avatar:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        /* Индикатор онлайн на аватарке */
+        .avatar-online-indicator {
+            position: absolute;
+            bottom: 0; right: 0;
+            width: 12px; height: 12px;
+            background: #4caf50;
+            border: 2px solid #0f3460;
+            border-radius: 50%;
+            box-shadow: 0 0 6px rgba(76, 175, 80, 0.6);
+        }
+        body.light-theme .avatar-online-indicator {
+            border-color: #fff;
+        }
+        
+        /* Улучшенный список пользователей */
+        .user-item {
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border: 1px solid transparent;
+        }
+        .user-item:hover {
+            transform: translateX(5px) scale(1.02);
+            border-color: rgba(233, 69, 96, 0.3);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .user-item.active {
+            background: linear-gradient(135deg, #e94560 0%, #ff2e63 100%);
+            box-shadow: 0 4px 15px rgba(233, 69, 96, 0.4);
+        }
+        
+        /* Комнаты с градиентом */
+        .room-item {
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+        .room-item:hover {
+            border-left-color: #e94560;
+            transform: translateX(5px);
+        }
+        .room-item.active {
+            background: linear-gradient(135deg, #e94560 0%, #ff2e63 100%);
+            border-left-color: #fff;
+        }
+        
+        /* Улучшенный индикатор "печатает..." */
+        .typing-dots {
+            display: inline-flex;
+            gap: 3px;
+            margin-left: 5px;
+        }
+        .typing-dots span {
+            width: 6px; height: 6px;
+            background: #e94560;
+            border-radius: 50%;
+            animation: typingBounce 1.4s infinite ease-in-out;
+        }
+        .typing-dots span:nth-child(1) { animation-delay: 0s; }
+        .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes typingBounce {
+            0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+        
+        /* Плавные переходы темы */
+        body, #sidebar, #chat-header, #input-area, .message {
+            transition: background 0.4s ease, color 0.4s ease, border-color 0.4s ease;
+        }
+        
+        /* Красивый скроллбар */
+        #messages::-webkit-scrollbar,
+        #users-list::-webkit-scrollbar,
+        #rooms-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        #messages::-webkit-scrollbar-track,
+        #users-list::-webkit-scrollbar-track,
+        #rooms-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        #messages::-webkit-scrollbar-thumb,
+        #users-list::-webkit-scrollbar-thumb,
+        #rooms-list::-webkit-scrollbar-thumb {
+            background: rgba(233, 69, 96, 0.4);
+            border-radius: 10px;
+        }
+        #messages::-webkit-scrollbar-thumb:hover,
+        #users-list::-webkit-scrollbar-thumb:hover,
+        #rooms-list::-webkit-scrollbar-thumb:hover {
+            background: rgba(233, 69, 96, 0.7);
+        }
+        
+        /* Эффект при отправке сообщения */
+        @keyframes sendPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(0.95); }
+            100% { transform: scale(1); }
+        }
+        #send-btn:active {
+            animation: sendPulse 0.3s ease;
+        }       /* === НОВЫЕ АНИМАЦИИ И ДИЗАЙН === */
         @keyframes fadeInUp {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }

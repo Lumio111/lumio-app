@@ -516,21 +516,32 @@ window.addEventListener('load', () => {
 });
 
 // 2. Функция для генерации цвета и инициалов
-function getAvatarHTML(username, size = 40) {
-    const colors = ['#e94560', '#4caf50', '#2196f3', '#ff9800', '#9c27b0', '#00bcd4'];
+    }
+function getAvatarHTML(username, size = 42, isOnline = false) {
+    const gradients = [
+        'linear-gradient(135deg, #e94560 0%, #ff2e63 100%)',
+        'linear-gradient(135deg, #4caf50 0%, #8bc34a 100%)',
+        'linear-gradient(135deg, #2196f3 0%, #03a9f4 100%)',
+        'linear-gradient(135deg, #ff9800 0%, #ffc107 100%)',
+        'linear-gradient(135deg, #9c27b0 0%, #e91e63 100%)',
+        'linear-gradient(135deg, #00bcd4 0%, #009688 100%)',
+        'linear-gradient(135deg, #f44336 0%, #ff5722 100%)',
+        'linear-gradient(135deg, #3f51b5 0%, #2196f3 100%)'
+    ];
     const initial = username ? username.charAt(0).toUpperCase() : '?';
-    // Генерируем стабильный цвет на основе имени
     let hash = 0;
     for (let i = 0; i < username.length; i++) {
         hash = username.charCodeAt(i) + ((hash << 5) - hash);
     }
-    const color = colors[Math.abs(hash) % colors.length];
+    const gradient = gradients[Math.abs(hash) % gradients.length];
+    return `<div class="avatar" style="width:${size}px; height:${size}px; background:${gradient}; font-size:${size/2.3}px;">${initial}${isOnline ? '<div class="avatar-online-indicator"></div>' : ''}</div>`;
+}    const color = colors[Math.abs(hash) % colors.length];
     
     return `<div class="avatar" style="width:${size}px; height:${size}px; background:${color}; font-size:${size/2.5}px;">${initial}</div>`;
 }
 
 // 3. Обновляем отображение пользователей с аватарками
-function renderUsersList() {
+   function renderUsersList() {
     const list = document.getElementById('users-list');
     list.innerHTML = '';
     allUsers.forEach(user => {
@@ -539,6 +550,25 @@ function renderUsersList() {
         const item = document.createElement('div');
         item.className = `user-item ${isActive ? 'active' : ''}`;
         item.style.display = 'flex';
+        item.style.alignItems = 'center';
+        item.style.gap = '12px';
+        item.style.padding = '12px';
+        item.innerHTML = `
+            ${getAvatarHTML(user.username, 42, isOnline)}
+            <div style="flex:1; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <div class="username" style="font-weight:600;">${user.username}</div>
+                    <div class="status ${isOnline ? '' : 'offline'}" style="font-size:11px; margin-top:2px;">
+                        ${isOnline ? '● В сети' : '○ Оффлайн'}
+                    </div>
+                </div>
+                ${isOnline ? `<button onclick="startCall('${user._id}', 'video'); event.stopPropagation();" style="background:linear-gradient(135deg, #4caf50, #8bc34a); border:none; color:#fff; padding:8px; border-radius:50%; cursor:pointer; font-size:14px; box-shadow:0 2px 8px rgba(76,175,80,0.4); transition:all 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">📹</button>` : ''}
+            </div>
+        `;
+        item.onclick = () => openDm(user._id, user.username);
+        list.appendChild(item);
+    });
+}     item.style.display = 'flex';
         item.style.alignItems = 'center';
         item.style.gap = '12px';
         item.innerHTML = `
