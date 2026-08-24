@@ -1,1 +1,1 @@
-﻿      const CACHE_NAME = 'lumio-v5';
+﻿const CACHE_NAME = 'lumio-v6';

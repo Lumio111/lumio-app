@@ -745,3 +745,28 @@ appendMessage = function(msg) {
         }
     }
 };
+
+
+// === МОДАЛЬНЫЕ ОКНА (Premium и Политика конфиденциальности) ===
+
+function openModal(id) {
+    document.getElementById(id).style.display = 'flex';
+}
+
+function closeModal(id) {
+    document.getElementById(id).style.display = 'none';
+}
+
+function handlePremiumClick() {
+    showToast('Спасибо за поддержку! Функция оплаты скоро будет доступна.', 'success', '💎');
+    closeModal('support-modal');
+}
+
+// Закрытие модалок по клавише Esc
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        document.querySelectorAll('.modal-overlay').forEach(modal => {
+            modal.style.display = 'none';
+        });
+    }
+});
