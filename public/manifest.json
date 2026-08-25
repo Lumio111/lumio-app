@@ -9,11 +9,10 @@
   "background_color": "#16213e",
   "theme_color": "#16213e",
   "icons": [
-    {
-      "src":https://i.postimg.cc/PJdvQrsz/1787663075e276.png ,
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ]
-}
+  {
+    "src": "/icons/icon-512.png",
+    "sizes": "512x512",
+    "type": "image/png",
+    "purpose": "any maskable"
+  }
+]
