@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "ru.lumio.messenger",
+    "sha256_cert_fingerprints": [
+      "3B:E8:C4:B9:64:84:8C:99:FA:5C:1F:AC:46:7F:52:7C:74:59:FC:5E:6F:53:22:3B:7F:C4:D4:7D:D3:A4:81:94"
+    ]
+  }
+}]
