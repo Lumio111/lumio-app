@@ -630,7 +630,46 @@
             #menu-toggle { display: block !important; }
         }
         #menu-toggle { display: none; background: transparent; border: none; color: #fff; font-size: 24px; cursor: pointer; }
-    </style>
+    </style>        /* === ПРИНУДИТЕЛЬНЫЙ ДИЗАЙН ЧАТА TELEGRAM (ПЕРЕБИВАЕТ ВСЁ) === */
+        #main-chat {
+            background: #e5ddd5 !important; /* Классический светло-серый фон Telegram */
+        }
+        #messages {
+            background: transparent !important;
+        }
+        
+        /* Входящие сообщения - белые */
+        .message:not(.own) {
+            background: #ffffff !important;
+            color: #000000 !important;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1) !important;
+        }
+        
+        /* Исходящие сообщения - светло-зеленые (как в Telegram) */
+        .message.own {
+            background: #eeffde !important;
+            color: #000000 !important;
+        }
+        
+        /* Шапка чата - белая с темным текстом */
+        #chat-header {
+            background: #ffffff !important;
+            border-bottom: 1px solid #dfe1e5 !important;
+        }
+        #chat-header h3, #chat-header #chat-info, #chat-header button {
+            color: #000000 !important;
+        }
+        
+        /* Поле ввода - белое */
+        #input-area {
+            background: #ffffff !important;
+            border-top: 1px solid #dfe1e5 !important;
+        }
+        #message-input {
+            background: #ffffff !important;
+            color: #000000 !important;
+            border: 1px solid #dfe1e5 !important;
+        }
 </head>
 <body>    <!-- Экран загрузки (Splash Screen) -->
     <div id="splash-screen">
