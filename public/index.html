@@ -1,656 +1,226 @@
 <!DOCTYPE html>
 <html lang="ru">
-<head>   <link rel="manifest" href="/manifest.json">
-   <meta name="theme-color" content="#16213e">
+<head>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#3390EC">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lumio Ultimate</title>
-    <style>         /* === ЭТАП 4: МОДЕЛЬНЫЕ ОКНА И МОНЕТИЗАЦИЯ === */
-        .modal-overlay {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 10000;
-            justify-content: center; align-items: center;
-        }
-        .modal-content {
-            background: #16213e; border: 1px solid rgba(233, 69, 96, 0.3);
-            border-radius: 16px; padding: 30px; max-width: 400px; width: 90%;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5); position: relative;
-            animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        body.light-theme .modal-content { background: #fff; border-color: #ddd; }
-        .modal-close {
-            position: absolute; top: 15px; right: 15px; background: transparent;
-            border: none; color: #aaa; font-size: 24px; cursor: pointer;
-        }
-        .modal-close:hover { color: #e94560; }
-        .modal-title { font-size: 22px; font-weight: bold; margin-bottom: 15px; color: #e94560; }
-        .modal-text { font-size: 14px; line-height: 1.6; color: #ccc; margin-bottom: 20px; }
-        body.light-theme .modal-text { color: #333; }
-        .premium-btn {
-            width: 100%; padding: 12px; background: linear-gradient(135deg, #ffd700, #ffaa00);
-            color: #000; border: none; border-radius: 8px; font-weight: bold; font-size: 16px;
-            cursor: pointer; transition: transform 0.2s;
-        }
-        .premium-btn:hover { transform: scale(1.02); }
-        
-        /* Кнопка поддержки в сайдбаре */
-        #support-btn {
-            background: linear-gradient(135deg, #ffd700, #ffaa00); color: #000;
-            border: none; padding: 8px 12px; border-radius: 20px; font-weight: bold;
-            cursor: pointer; font-size: 12px; margin-left: 5px; transition: transform 0.2s;
-        }
-        #support-btn:hover { transform: scale(1.05); }
-        
-        #privacy-link {
-            display: block; text-align: center; margin-top: 15px; color: #aaa;
-            text-decoration: none; font-size: 12px; cursor: pointer;
-        }
-        #privacy-link:hover { color: #e94560; text-decoration: underline; }        /* === ЭТАП 2: ФУНКЦИОНАЛЬНЫЕ УЛУЧШЕНИЯ === */
-        
-        /* 3. Визуальный пикер эмодзи */
-        .emoji-picker-container {
-            display: grid;
-            grid-template-columns: repeat(8, 1fr);
-            gap: 8px;
-            padding: 10px;
-            max-height: 250px;
-            overflow-y: auto;
-        }
-        .emoji-picker-container span {
-            font-size: 24px;
-            cursor: pointer;
-            text-align: center;
-            padding: 5px;
-            border-radius: 8px;
-            transition: transform 0.2s, background 0.2s;
-        }
-        .emoji-picker-container span:hover {
-            transform: scale(1.3);
-            background: rgba(255,255,255,0.1);
-        }
-        .emoji-category-title {
-            grid-column: 1 / -1;
-            font-size: 12px;
-            color: #aaa;
-            text-transform: uppercase;
-            margin-top: 10px;
-            margin-bottom: 5px;
-            font-weight: bold;
+    <title>Lumio</title>
+    <style>
+        /* === TELEGRAM-STYLE MINIMAL DESIGN === */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            background: #ffffff; color: #000000; height: 100vh; overflow: hidden; 
         }
 
-        /* 4. Галочки статуса сообщений */
-        .message-status {
-            font-size: 10px;
-            margin-left: 5px;
-            opacity: 0.7;
-            display: inline-block;
-        }
-        .status-sent { color: #aaa; }
-        .status-delivered { color: #4caf50; }
-
-        /* 5. Скелетоны загрузки */
-        .skeleton {
-            background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%);
-            background-size: 200% 100%;
-            animation: skeleton-loading 1.5s infinite;
-            border-radius: 8px;
-            margin-bottom: 10px;
-        }
-        .skeleton-avatar { width: 42px; height: 42px; border-radius: 50%; }
-        .skeleton-text { height: 16px; width: 70%; margin-bottom: 8px; }
-        .skeleton-text.short { width: 40%; }
-        @keyframes skeleton-loading {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-        }
-
-        /* 10. Toast-уведомления */
-        .toast-container {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 10000;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .toast {
-            background: rgba(15, 52, 96, 0.95);
-            backdrop-filter: blur(10px);
-            color: #fff;
-            padding: 12px 20px;
-            border-radius: 8px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            animation: slideInRight 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-            border-left: 4px solid #e94560;
-            min-width: 250px;
-        }
-        .toast.success { border-left-color: #4caf50; }
-        .toast.info { border-left-color: #2196f3; }
-        .toast-icon { font-size: 20px; }
-        .toast-message { font-size: 14px; flex: 1; }
-        .toast-close { cursor: pointer; opacity: 0.7; font-size: 18px; }
-        .toast-close:hover { opacity: 1; }
-        @keyframes toastFadeOut {
-            to { opacity: 0; transform: translateX(100px); }
-        }         /* === ЭТАП 1: ВИЗУАЛЬНЫЕ ЭФФЕКТЫ === */
-        
-        /* 1. Анимированный градиентный фон */
-        @keyframes gradientShift {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-        body {
-            background: linear-gradient(-45deg, #1a1a2e, #16213e, #0f3460, #1a1a2e);
-            background-size: 400% 400%;
-            animation: gradientShift 15s ease infinite;
-        }
-        body.light-theme {
-            background: linear-gradient(-45deg, #f0f0f0, #e0e0e0, #d0d0d0, #f0f0f0);
-            background-size: 400% 400%;
-            animation: gradientShift 15s ease infinite;
-        }
-        
-        /* 2. Ripple-эффект для кнопок */
-        .ripple-btn {
-            position: relative;
-            overflow: hidden;
-        }
-        .ripple {
-            position: absolute;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.6);
-            transform: scale(0);
-            animation: rippleAnimation 0.6s ease-out;
-            pointer-events: none;
-        }
-        @keyframes rippleAnimation {
-            to {
-                transform: scale(4);
-                opacity: 0;
-            }
-        }
-        
-        /* 7. 3D-эффекты для сообщений */
-        .message {
-            transform-style: preserve-3d;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        .message:hover {
-            transform: perspective(1000px) rotateX(2deg) rotateY(-2deg) translateZ(10px);
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
-        }
-        .message.own:hover {
-            transform: perspective(1000px) rotateX(-2deg) rotateY(2deg) translateZ(10px);
-            box-shadow: 0 15px 35px rgba(233, 69, 96, 0.4);
-        }
-        
-        /* 8. Кастомный курсор */
-        .custom-cursor {
-            width: 20px;
-            height: 20px;
-            border: 2px solid #e94560;
-            border-radius: 50%;
-            position: fixed;
-            pointer-events: none;
-            z-index: 9999;
-            transition: transform 0.1s ease, background 0.2s ease;
-            mix-blend-mode: difference;
-        }
-        .custom-cursor.hover {
-            transform: scale(2);
-            background: rgba(233, 69, 96, 0.3);
-        }
-        .custom-cursor-trail {
-            width: 8px;
-            height: 8px;
-            background: #e94560;
-            border-radius: 50%;
-            position: fixed;
-            pointer-events: none;
-            z-index: 9998;
-            opacity: 0.5;
-            transition: opacity 0.3s ease;
-        }
-        
-        /* 9. Анимированные иконки */
-        @keyframes iconPulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.2); }
-        }
-        @keyframes iconShake {
-            0%, 100% { transform: rotate(0deg); }
-            25% { transform: rotate(-10deg); }
-            75% { transform: rotate(10deg); }
-        }
-        .icon-animated {
-            transition: all 0.3s ease;
-        }
-        .icon-animated:hover {
-            animation: iconPulse 0.6s ease;
-        }
-        .icon-animated:active {
-            animation: iconShake 0.4s ease;
-        }
-        
-        /* Улучшенные кнопки с ripple */
-        #send-btn, #attach-btn, #emoji-btn, #voice-btn, .action-btn {
-            position: relative;
-            overflow: hidden;
-        }
-        
-        /* Свечение для активных элементов */
-        .glow-effect {
-            box-shadow: 0 0 20px rgba(233, 69, 96, 0.5);
-        }
-        
-        /* Плавные переходы для всех элементов */
-        * {
-            transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
-        }       /* === GLASSMORPHISM ДИЗАЙН === */
-        .glass {
-            background: rgba(15, 52, 96, 0.6);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        body.light-theme .glass {
-            background: rgba(255, 255, 255, 0.7);
-            border: 1px solid rgba(0, 0, 0, 0.1);
-        }
-        
-        /* Свечение кнопок */
-        #send-btn, #attach-btn, #emoji-btn, #voice-btn {
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(233, 69, 96, 0.3);
-        }
-        #send-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(233, 69, 96, 0.5);
-        }
-        #attach-btn:hover, #emoji-btn:hover, #voice-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(233, 69, 96, 0.4);
-        }
-        
-        /* Улучшенные сообщения с тенью */
-        .message {
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            transition: transform 0.2s ease;
-        }
-        .message:hover {
-            transform: translateY(-2px);
-        }
-        .message.own {
-            box-shadow: 0 4px 12px rgba(233, 69, 96, 0.3);
-        }
-        
-        /* Градиентный фон для боковой панели */
-        #sidebar {
-            background: linear-gradient(180deg, #0f3460 0%, #16213e 100%);
-        }
-        body.light-theme #sidebar {
-            background: linear-gradient(180deg, #ffffff 0%, #f8f8f8 100%);
-        }
-        
-        /* Продвинутые анимации */
-        @keyframes slideInRight {
-            from { opacity: 0; transform: translateX(30px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes slideInLeft {
-            from { opacity: 0; transform: translateX(-30px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes bounceIn {
-            0% { opacity: 0; transform: scale(0.3); }
-            50% { transform: scale(1.05); }
-            70% { transform: scale(0.95); }
-            100% { opacity: 1; transform: scale(1); }
-        }
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-        }
-        @keyframes shimmer {
-            0% { background-position: -200% 0; }
-            100% { background-position: 200% 0; }
-        }
-        
-        /* Анимация для своих сообщений (справа) */
-        .message.own {
-            animation: slideInRight 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        /* Анимация для чужих сообщений (слева) */
-        .message:not(.own) {
-            animation: slideInLeft 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        
-        /* Индикатор "печатает..." с анимацией */
-        #typing-indicator {
-            animation: fadeInUp 0.3s ease;
-        }
-        
-        /* Пульсация для новых уведомлений */
-        .unread-pulse {
-            animation: pulse 1.5s infinite;
-        }
-        
-        /* Улучшенные аватарки с градиентом */
-        .avatar {
-            width: 42px; height: 42px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            font-weight: bold; font-size: 18px; color: #fff;
-            text-transform: uppercase; flex-shrink: 0;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-            position: relative;
-            border: 2px solid rgba(255,255,255,0.2);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        .avatar:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-        }
-        
-        /* Индикатор онлайн на аватарке */
-        .avatar-online-indicator {
-            position: absolute;
-            bottom: 0; right: 0;
-            width: 12px; height: 12px;
-            background: #4caf50;
-            border: 2px solid #0f3460;
-            border-radius: 50%;
-            box-shadow: 0 0 6px rgba(76, 175, 80, 0.6);
-        }
-        body.light-theme .avatar-online-indicator {
-            border-color: #fff;
-        }
-        
-        /* Улучшенный список пользователей */
-        .user-item {
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            border: 1px solid transparent;
-        }
-        .user-item:hover {
-            transform: translateX(5px) scale(1.02);
-            border-color: rgba(233, 69, 96, 0.3);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        }
-        .user-item.active {
-            background: linear-gradient(135deg, #e94560 0%, #ff2e63 100%);
-            box-shadow: 0 4px 15px rgba(233, 69, 96, 0.4);
-        }
-        
-        /* Комнаты с градиентом */
-        .room-item {
-            transition: all 0.3s ease;
-            border-left: 3px solid transparent;
-        }
-        .room-item:hover {
-            border-left-color: #e94560;
-            transform: translateX(5px);
-        }
-        .room-item.active {
-            background: linear-gradient(135deg, #e94560 0%, #ff2e63 100%);
-            border-left-color: #fff;
-        }
-        
-        /* Улучшенный индикатор "печатает..." */
-        .typing-dots {
-            display: inline-flex;
-            gap: 3px;
-            margin-left: 5px;
-        }
-        .typing-dots span {
-            width: 6px; height: 6px;
-            background: #e94560;
-            border-radius: 50%;
-            animation: typingBounce 1.4s infinite ease-in-out;
-        }
-        .typing-dots span:nth-child(1) { animation-delay: 0s; }
-        .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
-        .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
-        
-        @keyframes typingBounce {
-            0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
-            40% { transform: scale(1); opacity: 1; }
-        }
-        
-        /* Плавные переходы темы */
-        body, #sidebar, #chat-header, #input-area, .message {
-            transition: background 0.4s ease, color 0.4s ease, border-color 0.4s ease;
-        }
-        
-        /* Красивый скроллбар */
-        #messages::-webkit-scrollbar,
-        #users-list::-webkit-scrollbar,
-        #rooms-list::-webkit-scrollbar {
-            width: 6px;
-        }
-        #messages::-webkit-scrollbar-track,
-        #users-list::-webkit-scrollbar-track,
-        #rooms-list::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        #messages::-webkit-scrollbar-thumb,
-        #users-list::-webkit-scrollbar-thumb,
-        #rooms-list::-webkit-scrollbar-thumb {
-            background: rgba(233, 69, 96, 0.4);
-            border-radius: 10px;
-        }
-        #messages::-webkit-scrollbar-thumb:hover,
-        #users-list::-webkit-scrollbar-thumb:hover,
-        #rooms-list::-webkit-scrollbar-thumb:hover {
-            background: rgba(233, 69, 96, 0.7);
-        }
-        
-        /* Эффект при отправке сообщения */
-        @keyframes sendPulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(0.95); }
-            100% { transform: scale(1); }
-        }
-        #send-btn:active {
-            animation: sendPulse 0.3s ease;
-        }       /* === НОВЫЕ АНИМАЦИИ И ДИЗАЙН === */
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes popIn {
-            0% { opacity: 0; transform: scale(0.8); }
-            70% { transform: scale(1.05); }
-            100% { opacity: 1; transform: scale(1); }
-        }
-        @keyframes splashFadeOut {
-            to { opacity: 0; visibility: hidden; }
-        }
-
-        /* Экран загрузки (Splash Screen) */
+        /* Экран загрузки */
         #splash-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #16213e; display: flex; flex-direction: column;
+            background: #ffffff; display: flex; flex-direction: column;
             justify-content: center; align-items: center; z-index: 9999;
-            transition: opacity 0.8s ease, visibility 0.8s;
+            transition: opacity 0.5s ease;
         }
-        #splash-screen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
-        .splash-logo {
-            font-size: 48px; font-weight: bold; color: #e94560;
-            animation: popIn 1s ease-out;
-            text-shadow: 0 4px 15px rgba(233, 69, 96, 0.4);
-        }
+        #splash-screen.hidden { opacity: 0; pointer-events: none; }
+        .splash-logo { font-size: 32px; font-weight: 600; color: #3390EC; }
         .splash-loader {
-            margin-top: 20px; width: 40px; height: 40px;
-            border: 4px solid rgba(255,255,255,0.1);
-            border-top: 4px solid #e94560; border-radius: 50%;
-            animation: spin 1s linear infinite;
+            margin-top: 20px; width: 32px; height: 32px;
+            border: 3px solid #e0e0e0; border-top: 3px solid #3390EC; 
+            border-radius: 50%; animation: spin 1s linear infinite;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* Аватарки с инициалами */
+        /* Экран авторизации */
+        #auth-overlay { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: #ffffff; display: flex; justify-content: center; align-items: center; z-index: 1000; 
+        }
+        .auth-box { 
+            background: #ffffff; padding: 40px; border-radius: 12px; 
+            width: 360px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.08); 
+        }
+        .auth-box h2 { margin-bottom: 30px; color: #000000; font-size: 24px; font-weight: 600; }
+        .auth-tabs { display: flex; margin-bottom: 30px; border-bottom: 1px solid #e0e0e0; }
+        .tab-btn { 
+            flex: 1; padding: 12px; background: transparent; border: none; 
+            color: #999999; cursor: pointer; font-weight: 500; font-size: 15px;
+            border-bottom: 2px solid transparent; transition: all 0.2s;
+        }
+        .tab-btn.active { color: #3390EC; border-bottom: 2px solid #3390EC; }
+        .auth-box input { 
+            width: 100%; padding: 14px; margin: 8px 0; border: 1px solid #e0e0e0; 
+            border-radius: 8px; background: #f5f5f5; color: #000000; font-size: 15px;
+            transition: border-color 0.2s;
+        }
+        .auth-box input:focus { outline: none; border-color: #3390EC; background: #ffffff; }
+        .auth-box button[type="submit"] { 
+            width: 100%; padding: 14px; margin-top: 20px; background: #3390EC; 
+            color: #ffffff; border: none; border-radius: 8px; cursor: pointer; 
+            font-weight: 600; font-size: 15px; transition: background 0.2s;
+        }
+        .auth-box button[type="submit"]:hover { background: #2a7ed8; }
+        .error-msg { color: #e53935; font-size: 14px; margin-top: 10px; min-height: 20px; }
+
+        /* Основное приложение */
+        #chat-app { display: none; height: 100vh; flex-direction: row; }
+
+        /* Боковая панель */
+        #sidebar { 
+            width: 320px; background: #ffffff; display: flex; flex-direction: column; 
+            border-right: 1px solid #e0e0e0; 
+        }
+        #sidebar-header { 
+            padding: 16px; background: #ffffff; display: flex; justify-content: space-between; 
+            align-items: center; border-bottom: 1px solid #e0e0e0; 
+        }
+        #sidebar-header h3 { color: #000000; font-size: 18px; font-weight: 600; }
+        #logout-btn, #theme-toggle { 
+            background: transparent; border: 1px solid #e0e0e0; color: #666666; 
+            padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; margin-left: 8px; 
+        }
+        #support-btn {
+            background: #3390EC; color: #ffffff; border: none; padding: 6px 12px; 
+            border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; margin-left: 8px;
+        }
+
+        /* Режимы чата */
+        #chat-modes { display: flex; border-bottom: 1px solid #e0e0e0; }
+        .mode-btn { 
+            flex: 1; padding: 14px; background: transparent; border: none; 
+            color: #999999; cursor: pointer; font-weight: 500; font-size: 14px;
+            border-bottom: 2px solid transparent; 
+        }
+        .mode-btn.active { color: #3390EC; border-bottom: 2px solid #3390EC; }
+
+        /* Секции */
+        #rooms-section, #users-section { border-bottom: 1px solid #e0e0e0; }
+        .section-title { 
+            padding: 12px 16px; background: #f5f5f5; font-weight: 600; font-size: 12px; 
+            color: #999999; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        #rooms-list, #users-list { flex: 1; overflow-y: auto; padding: 8px; }
+        .room-item, .user-item { 
+            padding: 12px; margin: 4px 0; background: #ffffff; border-radius: 8px; cursor: pointer; 
+        }
+        .room-item:hover, .user-item:hover { background: #f5f5f5; }
+        .room-item.active, .user-item.active { background: #3390EC; color: #ffffff; }
+        .room-item .name, .user-item .username { font-weight: 500; font-size: 15px; }
+        .user-item .status { font-size: 12px; color: #4caf50; }
+        .user-item .status.offline { color: #999999; }
+
+        /* Основная область чата */
+        #main-chat { flex: 1; display: flex; flex-direction: column; background: #ffffff; }
+        #chat-header { 
+            padding: 16px; background: #ffffff; border-bottom: 1px solid #e0e0e0; 
+            display: flex; justify-content: space-between; align-items: center; 
+        }
+        #chat-header h3 { color: #000000; font-size: 16px; font-weight: 600; }
+        #chat-info { color: #999999; font-size: 13px; margin-top: 2px; }
+
+        /* Сообщения */
+        #messages { 
+            flex: 1; overflow-y: auto; padding: 16px; display: flex; 
+            flex-direction: column; gap: 8px; background: #ffffff; 
+        }
+        .message { 
+            background: #f5f5f5; padding: 10px 14px; border-radius: 12px; 
+            max-width: 70%; word-wrap: break-word; position: relative; 
+        }
+        .message.own { background: #effdde; align-self: flex-end; }
+        .message .meta { font-size: 12px; color: #3390EC; font-weight: 500; margin-bottom: 4px; }
+        .message .text { font-size: 15px; margin-bottom: 4px; line-height: 1.4; }
+        .message .time { font-size: 11px; color: #999999; margin-top: 4px; text-align: right; }
+        .message .mention { color: #3390EC; font-weight: 500; }
+
+        /* Область ввода */
+        #input-area { 
+            padding: 12px 16px; background: #ffffff; display: flex; gap: 8px; 
+            border-top: 1px solid #e0e0e0; align-items: center; 
+        }
+        #message-input { 
+            flex: 1; padding: 12px; border: 1px solid #e0e0e0; border-radius: 8px; 
+            background: #f5f5f5; color: #000000; font-size: 15px;
+        }
+        #message-input:focus { outline: none; border-color: #3390EC; background: #ffffff; }
+        #emoji-btn, #attach-btn, #voice-btn { 
+            padding: 10px; background: transparent; border: 1px solid #e0e0e0; 
+            color: #666666; border-radius: 8px; cursor: pointer; font-size: 18px;
+        }
+        #emoji-btn:hover, #attach-btn:hover, #voice-btn:hover { background: #f5f5f5; }
+        #send-btn { 
+            padding: 10px 20px; background: #3390EC; color: #ffffff; border: none; 
+            border-radius: 8px; cursor: pointer; font-size: 16px; 
+        }
+        #send-btn:hover { background: #2a7ed8; }
+
+        /* Пикер эмодзи */
+        #emoji-picker { 
+            display: none; position: absolute; bottom: 70px; left: 16px; 
+            background: #ffffff; padding: 12px; border-radius: 8px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 100; border: 1px solid #e0e0e0;
+        }
+        .emoji-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
+        .emoji-item { font-size: 24px; cursor: pointer; padding: 4px; border-radius: 4px; }
+        .emoji-item:hover { background: #f5f5f5; }
+
+        #file-input, #voice-input { display: none; }
+
+        /* Модальные окна */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 10000;
+            justify-content: center; align-items: center;
+        }
+        .modal-content {
+            background: #ffffff; border-radius: 12px; padding: 30px; 
+            max-width: 400px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.15); position: relative;
+        }
+        .modal-close {
+            position: absolute; top: 16px; right: 16px; background: transparent;
+            border: none; color: #999999; font-size: 24px; cursor: pointer;
+        }
+        .modal-title { font-size: 20px; font-weight: 600; margin-bottom: 16px; color: #000000; }
+        .modal-text { font-size: 14px; line-height: 1.6; color: #666666; margin-bottom: 20px; }
+        .premium-btn {
+            width: 100%; padding: 12px; background: #3390EC; color: #ffffff;
+            border: none; border-radius: 8px; font-weight: 600; font-size: 15px; cursor: pointer;
+        }
+        #privacy-link {
+            display: block; text-align: center; margin-top: 16px; color: #999999;
+            text-decoration: none; font-size: 13px; cursor: pointer;
+        }
+
+        /* Аватарки */
         .avatar {
             width: 40px; height: 40px; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
-            font-weight: bold; font-size: 16px; color: #fff;
+            font-weight: 600; font-size: 16px; color: #ffffff;
             text-transform: uppercase; flex-shrink: 0;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
-        .message { animation: fadeInUp 0.3s ease-out; }
-        .message.own { animation: fadeInUp 0.3s ease-out, popIn 0.4s ease-out; }
-        
-        /* Улучшенные поля ввода */
-        #message-input:focus, #search-input:focus {
-            outline: 2px solid #e94560;
-            box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.2);
-        }
-        .action-btn { transition: transform 0.2s, background 0.2s; }
-        .action-btn:hover { transform: scale(1.1); background: rgba(233, 69, 96, 0.8); }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: #fff; height: 100vh; overflow: hidden; transition: background 0.3s; }
-        body.light-theme { background: #f0f0f0; color: #333; }
-        
-        #auth-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #16213e; display: flex; justify-content: center; align-items: center; z-index: 1000; }
-        .auth-box { background: #0f3460; padding: 30px; border-radius: 12px; width: 300px; text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
-        .auth-box h2 { margin-bottom: 20px; color: #e94560; }
-        .auth-tabs { display: flex; margin-bottom: 20px; }
-        .tab-btn { flex: 1; padding: 10px; background: transparent; border: none; color: #aaa; cursor: pointer; border-bottom: 2px solid transparent; font-weight: bold; }
-        .tab-btn.active { color: #fff; border-bottom: 2px solid #e94560; }
-        .auth-box input { width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 6px; background: #1a1a2e; color: #fff; }
-        .auth-box button { width: 100%; padding: 12px; margin-top: 15px; background: #e94560; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px; }
-        .error-msg { color: #ff6b6b; font-size: 14px; margin-top: 10px; min-height: 20px; }
 
-        #chat-app { display: none; height: 100vh; flex-direction: row; }
-        
-        #sidebar { width: 280px; background: #0f3460; display: flex; flex-direction: column; border-right: 1px solid #1a1a2e; }
-        body.light-theme #sidebar { background: #fff; border-right: 1px solid #ddd; }
-        
-        #sidebar-header { padding: 15px; background: #16213e; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1a1a2e; }
-        body.light-theme #sidebar-header { background: #f8f8f8; border-bottom: 1px solid #ddd; }
-        #sidebar-header h3 { color: #e94560; }
-        #logout-btn, #theme-toggle { background: transparent; border: 1px solid #4caf50; color: #4caf50; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-left: 5px; }
-        #logout-btn { border-color: #e94560; color: #e94560; }
-        
-        #chat-modes { display: flex; border-bottom: 1px solid #1a1a2e; }
-        .mode-btn { flex: 1; padding: 12px; background: transparent; border: none; color: #aaa; cursor: pointer; font-weight: bold; border-bottom: 2px solid transparent; }
-        .mode-btn.active { color: #fff; border-bottom: 2px solid #e94560; background: #16213e; }
-        body.light-theme .mode-btn.active { color: #333; background: #f8f8f8; }
-        
-        #rooms-section, #users-section { border-bottom: 1px solid #1a1a2e; }
-        .section-title { padding: 10px 15px; background: #16213e; font-weight: bold; font-size: 12px; color: #aaa; text-transform: uppercase; }
-        body.light-theme .section-title { background: #f8f8f8; }
-        
-        #rooms-list, #users-list { flex: 1; overflow-y: auto; padding: 10px; }
-        .room-item, .user-item { padding: 12px; margin: 5px 0; background: #16213e; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
-        body.light-theme .room-item, body.light-theme .user-item { background: #f8f8f8; }
-        .room-item:hover, .user-item:hover { background: #1a1a2e; transform: translateX(3px); }
-        body.light-theme .room-item:hover, body.light-theme .user-item:hover { background: #e0e0e0; }
-        .room-item.active, .user-item.active { background: #e94560; }
-        .room-item .name, .user-item .username { font-weight: bold; }
-        .user-item .status { font-size: 11px; color: #4caf50; }
-        .user-item .status.offline { color: #888; }
-        
-           #main-chat { flex: 1; display: flex; flex-direction: column; background: #e5ddd5; }
-        #chat-header { padding: 15px; background: #f4f4f5; border-bottom: 1px solid #1a1a2e; display: flex; justify-content: space-between; align-items: center; }
-        body.light-theme #chat-header { background: #fff; border-bottom: 1px solid #ddd; }
-        
-        #pinned-message { display: none; padding: 10px 15px; background: #16213e; border-bottom: 1px solid #1a1a2e; font-size: 13px; }
-        body.light-theme #pinned-message { background: #f8f8f8; }
-        #pinned-message .pin-icon { color: #e94560; margin-right: 5px; }
-        #pinned-message .close-pin { float: right; cursor: pointer; opacity: 0.7; }
-        
-        #search-box { display: none; padding: 10px; background: #16213e; border-bottom: 1px solid #1a1a2e; }
-        body.light-theme #search-box { background: #f8f8f8; }
-        #search-input { width: 100%; padding: 8px; border: none; border-radius: 6px; background: #1a1a2e; color: #fff; }
-        body.light-theme #search-input { background: #fff; color: #333; }
-        
-           #messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: transparent; }
-        .message { background: #ffffff; padding: 10px 15px; border-radius: 18px; max-width: 70%; word-wrap: break-word; position: relative; }
-        body.light-theme .message { background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .message.own { background: #e94560; align-self: flex-end; }
-        .message .meta { font-size: 11px; opacity: 0.7; margin-bottom: 4px; }
-        .message .text { font-size: 14px; margin-bottom: 5px; }
-        .message .time { font-size: 10px; opacity: 0.5; margin-top: 4px; text-align: right; }
-        .message .edited { font-size: 10px; opacity: 0.5; font-style: italic; }
-        .message .mention { color: #4caf50; font-weight: bold; }
-        
-        .message .reactions { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
-        .reaction-badge { background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 12px; font-size: 12px; cursor: pointer; }
-        body.light-theme .reaction-badge { background: rgba(0,0,0,0.1); }
-        
-        .message .actions { position: absolute; top: 5px; right: 5px; display: none; gap: 5px; }
-        .message:hover .actions { display: flex; }
-        .action-btn { background: rgba(0,0,0,0.3); border: none; color: #fff; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; }
-        
-        .message .file-preview { margin: 8px 0; }
-        .message .file-preview img { max-width: 100%; max-height: 300px; border-radius: 8px; cursor: pointer; }
-        .message .file-preview video { max-width: 100%; max-height: 300px; border-radius: 8px; }
-        .message .file-preview audio { width: 100%; margin: 8px 0; }
-        .message .file-info { display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px; margin: 8px 0; }
-        .message .file-info .icon { font-size: 24px; }
-        .message .file-info .details { flex: 1; }
-        .message .file-info .name { font-weight: bold; font-size: 13px; }
-        .message .file-info .size { font-size: 11px; opacity: 0.7; }
-        .message .file-info a { color: #4caf50; text-decoration: none; font-size: 12px; }
-        
-        #typing-indicator { display: none; padding: 5px 15px; font-size: 12px; opacity: 0.7; font-style: italic; }
-        
-        #input-area { padding: 15px; background: #0f3460; display: flex; gap: 10px; border-top: 1px solid #1a1a2e; align-items: center; }
-        body.light-theme #input-area { background: #fff; border-top: 1px solid #ddd; }
-        #message-input { flex: 1; padding: 12px; border: none; border-radius: 6px; background: #1a1a2e; color: #fff; font-size: 14px; }
-        body.light-theme #message-input { background: #f0f0f0; color: #333; }
-        #emoji-btn, #attach-btn, #voice-btn { padding: 12px; background: transparent; border: 1px solid #e94560; color: #e94560; border-radius: 6px; cursor: pointer; font-size: 18px; }
-        #send-btn { padding: 12px 20px; background: #2AABEE; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; }
-        
-        #emoji-picker { display: none; position: absolute; bottom: 70px; left: 15px; background: #0f3460; padding: 10px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 100; }
-        body.light-theme #emoji-picker { background: #fff; }
-        .emoji-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; }
-        .emoji-item { font-size: 24px; cursor: pointer; padding: 5px; border-radius: 4px; }
-        .emoji-item:hover { background: rgba(255,255,255,0.1); }
-        
-        #file-input, #voice-input { display: none; }
-        
-        #call-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 3000; justify-content: center; align-items: center; flex-direction: column; }
-        #call-modal video { max-width: 90%; max-height: 70%; border-radius: 12px; }
-        #call-controls { margin-top: 20px; display: flex; gap: 15px; }
-        #call-controls button { padding: 15px 30px; border: none; border-radius: 50px; cursor: pointer; font-size: 16px; font-weight: bold; }
-        #accept-call { background: #4caf50; color: #fff; }
-        #reject-call, #end-call { background: #f44336; color: #fff; }
-        
-        #image-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 2000; justify-content: center; align-items: center; }
-        #image-modal img { max-width: 90%; max-height: 90%; border-radius: 8px; }
-        #image-modal .close { position: absolute; top: 20px; right: 30px; font-size: 40px; color: #fff; cursor: pointer; }
-        
+        /* Адаптивность */
         @media (max-width: 768px) {
-            #sidebar { width: 100%; position: absolute; z-index: 100; height: 100%; transform: translateX(-100%); transition: transform 0.3s; }
+            #sidebar { 
+                width: 100%; position: absolute; z-index: 100; height: 100%; 
+                transform: translateX(-100%); transition: transform 0.3s; 
+            }
             #sidebar.open { transform: translateX(0); }
-                   #menu-toggle { display: block !important; }
-    }
-    #menu-toggle { display: none; background: transparent; border: none; color: #fff; font-size: 24px; cursor: pointer; }
-
-    /* === ПРИНУДИТЕЛЬНЫЙ ДИЗАЙН ЧАТА TELEGRAM (ПЕРЕБИВАЕТ ВСЁ) === */
-    #main-chat { background: #e5ddd5 !important; }
-    #messages { background: transparent !important; }
-    .message:not(.own) { background: #ffffff !important; color: #000000 !important; box-shadow: 0 1px 2px rgba(0,0,0,0.1) !important; }
-    .message.own { background: #eeffde !important; color: #000000 !important; }
-    #chat-header { background: #ffffff !important; border-bottom: 1px solid #dfe1e5 !important; }
-    #chat-header h3, #chat-header #chat-info, #chat-header button { color: #000000 !important; }
-    #input-area { background: #ffffff !important; border-top: 1px solid #dfe1e5 !important; }
-    #message-input { background: #ffffff !important; color: #000000 !important; border: 1px solid #dfe1e5 !important; }
-</style>
+            #menu-toggle { display: block !important; }
+        }
+        #menu-toggle { display: none; background: transparent; border: none; color: #000000; font-size: 24px; cursor: pointer; }
+    </style>
 </head>
-<body>    <!-- Экран загрузки (Splash Screen) -->
+<body>
+    <!-- Экран загрузки -->
     <div id="splash-screen">
         <div class="splash-logo">💬 Lumio</div>
         <div class="splash-loader"></div>
     </div>
 
+    <!-- Экран авторизации -->
     <div id="auth-overlay">
         <div class="auth-box">
-                              <h2>🔐 Lumio</h2>
+            <h2>🔐 Lumio</h2>
             <div class="auth-tabs">
                 <button class="tab-btn active" onclick="showTab('login')">Вход</button>
                 <button class="tab-btn" onclick="showTab('register')">Регистрация</button>
@@ -658,60 +228,40 @@
             
             <!-- ФОРМА ВХОДА -->
             <form id="login-form">
-                <input type="email" id="login-email" placeholder="Ваш Email" required style="width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 6px; background: #1a1a2e; color: #fff;">
-                <input type="password" id="login-password" placeholder="Пароль" required style="width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 6px; background: #1a1a2e; color: #fff;">
-                <button type="submit" style="width: 100%; padding: 12px; margin-top: 15px; background: #e94560; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px;">Войти</button>
-                
+                <input type="email" id="login-email" placeholder="Ваш Email" required>
+                <input type="password" id="login-password" placeholder="Пароль" required>
+                <button type="submit">Войти</button>
                 <div style="text-align: center; margin: 20px 0; color: #888; font-size: 14px;">или</div>
-                
-                <button type="button" id="google-login" style="width: 100%; padding: 12px; background: #fff; color: #333; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 16px;">
+                <button type="button" id="google-login" style="width: 100%; padding: 12px; background: #ffffff; color: #333; border: 1px solid #e0e0e0; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 15px;">
                     <img src="https://www.google.com/favicon.ico" style="width: 20px; height: 20px;">
                     Войти через Google
                 </button>
-                
                 <p id="login-error" class="error-msg"></p>
             </form>
 
-            <!-- ФОРМА РЕГИСТРАЦИИ (скрыта по умолчанию) -->
+            <!-- ФОРМА РЕГИСТРАЦИИ -->
             <form id="register-form" style="display: none;">
-                <input type="email" id="reg-email" placeholder="Ваш Email" required style="width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 6px; background: #1a1a2e; color: #fff;">
-                <input type="password" id="reg-password" placeholder="Пароль (мин. 6 символов)" required minlength="6" style="width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 6px; background: #1a1a2e; color: #fff;">
-                <button type="submit" style="width: 100%; padding: 12px; margin-top: 15px; background: #e94560; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px;">Зарегистрироваться</button>
-                
+                <input type="email" id="reg-email" placeholder="Ваш Email" required>
+                <input type="password" id="reg-password" placeholder="Пароль (мин. 6 символов)" required minlength="6">
+                <button type="submit">Зарегистрироваться</button>
                 <div style="text-align: center; margin: 20px 0; color: #888; font-size: 14px;">или</div>
-                
-                <button type="button" id="google-register" style="width: 100%; padding: 12px; background: #fff; color: #333; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 16px;">
+                <button type="button" id="google-register" style="width: 100%; padding: 12px; background: #ffffff; color: #333; border: 1px solid #e0e0e0; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 15px;">
                     <img src="https://www.google.com/favicon.ico" style="width: 20px; height: 20px;">
                     Регистрация через Google
                 </button>
-                
                 <p id="reg-error" class="error-msg"></p>
             </form>     
-            
-                          <form id="login-form">
-  <input type="email" id="login-email" placeholder="Ваш Email" required style="width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 6px; background: #1a1a2e; color: #fff;">
-  <input type="password" id="login-password" placeholder="Пароль" required style="width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 6px; background: #1a1a2e; color: #fff;">
-  <button type="submit" style="width: 100%; padding: 12px; margin-top: 15px; background: #e94560; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px;">Войти</button>
-  
-  <div style="text-align: center; margin: 20px 0; color: #888; font-size: 14px;">или</div>
-  
-  <button type="button" id="google-login" style="width: 100%; padding: 12px; background: #fff; color: #333; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 16px;">
-    <img src="https://www.google.com/favicon.ico" style="width: 20px; height: 20px;">
-    Войти через Google
-  </button>
-  
-  <p id="login-error" class="error-msg" style="color: #ff6b6b; font-size: 14px; margin-top: 10px; min-height: 20px; text-align: center;"></p>
-</form>
         </div>
     </div>
 
+    <!-- Основное приложение -->
     <div id="chat-app">
         <div id="sidebar">
-                    <div id="sidebar-header">
+            <div id="sidebar-header">
                 <h3>💬 Lumio</h3>
                 <div>
                     <button id="support-btn" onclick="openModal('support-modal')">💎 Premium</button>
-                    <button id="theme-toggle" onclick="toggleTheme()"></button>
+                    <button id="theme-toggle" onclick="toggleTheme()">🌓</button>
                     <button id="logout-btn" onclick="logout()">Выйти</button>
                 </div>
             </div>
@@ -724,7 +274,7 @@
             <div id="rooms-section" style="display: none;">
                 <div class="section-title">Комнаты</div>
                 <div id="rooms-list"></div>
-                <button onclick="createRoom()" style="width: 100%; padding: 10px; background: #e94560; color: #fff; border: none; cursor: pointer;">+ Создать комнату</button>
+                <button onclick="createRoom()" style="width: calc(100% - 16px); margin: 8px; padding: 10px; background: #3390EC; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">+ Создать комнату</button>
             </div>
             
             <div id="users-section">
@@ -741,24 +291,16 @@
                     <div id="chat-info">Все пользователи</div>
                 </div>
                 <div>
-                    <button onclick="toggleSearch()" style="background: transparent; border: 1px solid #e94560; color: #e94560; padding: 5px 10px; border-radius: 4px; cursor: pointer; margin-right: 5px;">🔍</button>
-                    <button onclick="exportChat()" style="background: transparent; border: 1px solid #e94560; color: #e94560; padding: 5px 10px; border-radius: 4px; cursor: pointer;">📄</button>
+                    <button onclick="toggleSearch()" style="background: transparent; border: 1px solid #e0e0e0; color: #666; padding: 6px 10px; border-radius: 6px; cursor: pointer; margin-right: 5px;">🔍</button>
                 </div>
             </div>
             
-            <div id="pinned-message">
-                <span class="pin-icon">📌</span>
-                <span id="pinned-text"></span>
-                <span class="close-pin" onclick="unpinMessage()">✕</span>
-            </div>
-            
-            <div id="search-box">
-                <input type="text" id="search-input" placeholder="Поиск сообщений..." onkeyup="searchMessages(event)">
+            <div id="search-box" style="display: none; padding: 12px; background: #f5f5f5; border-bottom: 1px solid #e0e0e0;">
+                <input type="text" id="search-input" placeholder="Поиск сообщений..." style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; background: #ffffff;">
             </div>
             
             <div id="messages"></div>
-            
-            <div id="typing-indicator"></div>
+            <div id="typing-indicator" style="display: none; padding: 8px 16px; font-size: 13px; color: #999999; font-style: italic;"></div>
             
             <div id="emoji-picker">
                 <div class="emoji-grid">
@@ -776,29 +318,42 @@
             <div id="input-area">
                 <button id="emoji-btn" onclick="toggleEmojiPicker()">😊</button>
                 <button id="attach-btn" onclick="document.getElementById('file-input').click()">📎</button>
-                <button id="voice-btn" onclick="document.getElementById('voice-input').click()">🎤</button>
                 <input type="file" id="file-input" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.zip,.rar" onchange="handleFileSelect(event)">
-                <input type="file" id="voice-input" accept="audio/*" onchange="handleVoiceSelect(event)">
-                <input type="text" id="message-input" placeholder="Введите сообщение... (@username для упоминания)">
+                <input type="text" id="message-input" placeholder="Введите сообщение...">
                 <button id="send-btn">➤</button>
             </div>
         </div>
     </div>
 
-    <div id="call-modal">
-        <video id="remote-video" autoplay playsinline></video>
-        <video id="local-video" autoplay playsinline muted style="position: absolute; top: 20px; right: 20px; width: 200px; border-radius: 8px;"></video>
-        <div id="call-controls">
-            <button id="accept-call" onclick="acceptCall()" style="display: none;">Принять</button>
-            <button id="reject-call" onclick="rejectCall()" style="display: none;">Отклонить</button>
-            <button id="end-call" onclick="endCall()" style="display: none;">Завершить</button>
+    <!-- Модальные окна (внутри body!) -->
+    <div id="support-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('support-modal')">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal('support-modal')">&times;</button>
+            <div class="modal-title">💎 Lumio Premium</div>
+            <div class="modal-text">
+                Поддержите разработчика и получите эксклюзивные возможности:<br>
+                🚫 Отключение рекламы<br>
+                🎨 Эксклюзивные темы оформления<br>
+                📁 Загрузка файлов до 100 MB
+            </div>
+            <button class="premium-btn" onclick="handlePremiumClick()">Поддержать за 199₽/мес</button>
+            <a id="privacy-link" onclick="openModal('privacy-modal')">Политика конфиденциальности</a>
         </div>
     </div>
 
-    <div id="image-modal" onclick="closeImageModal()">
-        <span class="close">&times;</span>
-        <img id="modal-image" src="">
+    <div id="privacy-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('privacy-modal')">
+        <div class="modal-content" style="max-height: 80vh; overflow-y: auto;">
+            <button class="modal-close" onclick="closeModal('privacy-modal')">&times;</button>
+            <div class="modal-title">📄 Политика конфиденциальности</div>
+            <div class="modal-text">
+                <b>1. Сбор данных.</b> Приложение Lumio использует Firebase для безопасной аутентификации.<br><br>
+                <b>2. Сообщения.</b> Текст сообщений хранится на защищённых серверах.<br><br>
+                <b>3. Контакты.</b> По всем вопросам: support@lumio-app.ru
+            </div>
+            <button class="premium-btn" style="background:#4caf50;" onclick="closeModal('privacy-modal')">Принять</button>
+        </div>
     </div>
+
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -816,44 +371,13 @@
       const auth = firebase.auth();
     </script>
     
-<script src="app.js"></script>   <script>
+    <script src="app.js"></script>
+    <script>
        if ('serviceWorker' in navigator) {
            window.addEventListener('load', () => {
                navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW error:', err));
            });
        }
-   </script>
+    </script>
 </body>
-    <!-- Модальное окно Premium / Поддержка -->
-    <div id="support-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('support-modal')">
-        <div class="modal-content">
-            <button class="modal-close" onclick="closeModal('support-modal')">&times;</button>
-            <div class="modal-title">💎 Lumio Premium</div>
-            <div class="modal-text">
-                Поддержите разработчика и получите эксклюзивные возможности:<br>
-                 Отключение рекламы<br>
-                🎨 Эксклюзивные темы оформления<br>
-                📁 Загрузка файлов до 100 MB<br>
-                🚀 Приоритетная поддержка
-            </div>
-            <button class="premium-btn" onclick="handlePremiumClick()">Поддержать за 199₽/мес</button>
-            <a id="privacy-link" onclick="openModal('privacy-modal')">Политика конфиденциальности</a>
-        </div>
-    </div>
-
-    <!-- Модальное окно Политики конфиденциальности -->
-    <div id="privacy-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('privacy-modal')">
-        <div class="modal-content" style="max-height: 80vh; overflow-y: auto;">
-            <button class="modal-close" onclick="closeModal('privacy-modal')">&times;</button>
-            <div class="modal-title">📄 Политика конфиденциальности</div>
-            <div class="modal-text">
-                <b>1. Сбор данных.</b> Приложение Lumio собирает только имя пользователя и пароль (в зашифрованном виде) для создания аккаунта.<br><br>
-                <b>2. Сообщения.</b> Текст сообщений и файлы хранятся на защищённых серверах и не передаются третьим лицам.<br><br>
-                <b>3. Уведомления.</b> Мы используем браузерные уведомления только с вашего явного разрешения.<br><br>
-                <b>4. Удаление данных.</b> Вы можете удалить свой аккаунт и все данные в любой момент, обратившись к администратору.<br><br>
-                <b>5. Контакты.</b> По всем вопросам: support@lumio-app.ru
-            </div>
-            <button class="premium-btn" style="background:#4caf50; color:#fff;" onclick="closeModal('privacy-modal')">Принять</button>
-        </div>
-    </div>
 </html>
