@@ -41,25 +41,27 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
   try {
     const userCredential = await auth.signInWithEmailAndPassword(email, password);
     const user = userCredential.user;
-    console.log('Успешный вход Firebase:', user.email);
-    
-    // Настраиваем переменные приложения, чтобы чат работал
-    currentUsername = user.email.split('@')[0]; // Берем часть email до @ как имя
+    currentUsername = user.email.split('@')[0];
     currentUserId = user.uid;
+    
+    // === ДОБАВЛЕНО: Сохраняем вход и подключаем чат ===
+    localStorage.setItem('lumio_token', user.uid);
+    localStorage.setItem('lumio_username', currentUsername);
     
     errorEl.textContent = '';
     document.getElementById('auth-overlay').style.display = 'none';
     document.getElementById('chat-app').style.display = 'flex';
+    requestNotificationPermission();
+    connectWebSocket(user.uid); // Подключаемся к серверу!
     
   } catch (error) {
     console.error('Ошибка входа:', error);
     let msg = 'Неверный email или пароль';
-    if (error.message.includes('auth/user-not-found')) msg = 'Пользователь с таким email не найден';
+    if (error.message.includes('auth/user-not-found')) msg = 'Пользователь не найден';
     if (error.message.includes('auth/wrong-password')) msg = 'Неверный пароль';
     errorEl.textContent = 'Ошибка: ' + msg;
   }
 });
-
 // 2. Регистрация по Email
 document.getElementById('register-form').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -71,22 +73,23 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
   try {
     const userCredential = await auth.createUserWithEmailAndPassword(email, password);
     const user = userCredential.user;
-    console.log('Успешная регистрация Firebase:', user.email);
-    
     currentUsername = user.email.split('@')[0];
     currentUserId = user.uid;
+    
+    localStorage.setItem('lumio_token', user.uid);
+    localStorage.setItem('lumio_username', currentUsername);
     
     errorEl.textContent = '';
     document.getElementById('auth-overlay').style.display = 'none';
     document.getElementById('chat-app').style.display = 'flex';
+    requestNotificationPermission();
+    connectWebSocket(user.uid);
     
   } catch (error) {
-    console.error('Ошибка регистрации:', error);
     let msg = 'Ошибка регистрации';
-    if (error.message.includes('auth/email-already-in-use')) msg = 'Этот email уже занят';
-    if (error.message.includes('auth/weak-password')) msg = 'Пароль должен быть не менее 6 симвонов';
+    if (error.message.includes('auth/email-already-in-use')) msg = 'Email уже занят';
+    if (error.message.includes('auth/weak-password')) msg = 'Пароль мин. 6 символов';
     errorEl.textContent = 'Ошибка: ' + msg;
-    errorEl.style.color = '#ff6b6b';
   }
 });
 
@@ -96,37 +99,41 @@ document.getElementById('google-login').addEventListener('click', async () => {
   try {
     const result = await auth.signInWithPopup(provider);
     const user = result.user;
-    console.log('Успешный вход через Google:', user.email);
-    
     currentUsername = user.displayName || user.email.split('@')[0];
     currentUserId = user.uid;
     
+    localStorage.setItem('lumio_token', user.uid);
+    localStorage.setItem('lumio_username', currentUsername);
+    
     document.getElementById('auth-overlay').style.display = 'none';
     document.getElementById('chat-app').style.display = 'flex';
+    requestNotificationPermission();
+    connectWebSocket(user.uid);
     
   } catch (error) {
-    console.error('Ошибка Google входа:', error);
-    document.getElementById('login-error').textContent = 'Ошибка входа через Google';
+    document.getElementById('login-error').textContent = 'Ошибка: ' + error.message;
   }
 });
 
-// 4. Регистрация через Google (работает так же, как вход)
+// 4. Регистрация через Google
 document.getElementById('google-register').addEventListener('click', async () => {
   const provider = new firebase.auth.GoogleAuthProvider();
   try {
     const result = await auth.signInWithPopup(provider);
     const user = result.user;
-    console.log('Успешная регистрация через Google:', user.email);
-    
     currentUsername = user.displayName || user.email.split('@')[0];
     currentUserId = user.uid;
     
+    localStorage.setItem('lumio_token', user.uid);
+    localStorage.setItem('lumio_username', currentUsername);
+    
     document.getElementById('auth-overlay').style.display = 'none';
     document.getElementById('chat-app').style.display = 'flex';
+    requestNotificationPermission();
+    connectWebSocket(user.uid);
     
   } catch (error) {
-    console.error('Ошибка Google регистрации:', error);
-    document.getElementById('reg-error').textContent = 'Ошибка регистрации через Google';
+    document.getElementById('reg-error').textContent = 'Ошибка: ' + error.message;
   }
 });
 // === КОНЕЦ FIREBASE AUTHENTICATION ===
