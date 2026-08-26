@@ -111,27 +111,57 @@ wss.on('connection', (ws) => {
         try {
             const msg = JSON.parse(data);
             
-            if (msg.type === 'auth') {
-                try {
-                    const decoded = jwt.verify(msg.token, JWT_SECRET);
-                    ws.userData = { userId: decoded.userId, username: decoded.username };
-                    ws.send(JSON.stringify({ type: 'auth_success', username: decoded.username, userId: decoded.userId }));
-                    
-                    await User.findByIdAndUpdate(decoded.userId, { lastSeen: new Date() });
-                    broadcastAll({ type: 'user_online', username: decoded.username, userId: decoded.userId });
-                    
-                    const allUsers = await User.find({}, 'username lastSeen').lean();
-                    ws.send(JSON.stringify({ type: 'users_list', users: allUsers }));
-                    
-                    const allRooms = await Room.find({}).lean();
-                    ws.send(JSON.stringify({ type: 'rooms_list', rooms: allRooms }));
-                } catch (e) {
-                    ws.send(JSON.stringify({ type: 'auth_error' }));
-                    ws.close();
+         if (msg.type === 'auth') {
+    try {
+        let userId, username;
+        
+        // === НОВАЯ ЛОГИКА: Поддержка Firebase UID ===
+        try {
+            // Пробуем старый способ (JWT)
+            const decoded = jwt.verify(msg.token, JWT_SECRET);
+            userId = decoded.userId;
+            username = decoded.username;
+        } catch (jwtError) {
+            // Если JWT не сработал, проверяем, это Firebase UID
+            if (msg.token && msg.token.length > 20) {
+                // Это Firebase UID! Используем его как userId
+                userId = msg.token;
+                username = msg.token.substring(0, 10); // Берем первые 10 символов как имя
+                
+                // Ищем или создаем пользователя в базе
+                let user = await User.findOne({ username: username });
+                if (!user) {
+                    user = new User({
+                        username: username,
+                        password: 'firebase_user', // Специальный маркер
+                        lastSeen: new Date()
+                    });
+                    await user.save();
                 }
-                return;
+                userId = user._id.toString(); // Используем MongoDB ID
+            } else {
+                throw new Error('Invalid token');
             }
-
+        }
+        
+        ws.userData = { userId: userId, username: username };
+        ws.send(JSON.stringify({ type: 'auth_success', username: username, userId: userId }));
+        
+        await User.findByIdAndUpdate(userId, { lastSeen: new Date() });
+        broadcastAll({ type: 'user_online', username: username, userId: userId });
+        
+        const allUsers = await User.find({}, 'username lastSeen').lean();
+        ws.send(JSON.stringify({ type: 'users_list', users: allUsers }));
+        
+        const allRooms = await Room.find({}).lean();
+        ws.send(JSON.stringify({ type: 'rooms_list', rooms: allRooms }));
+    } catch (e) {
+        console.error('Auth error:', e);
+        ws.send(JSON.stringify({ type: 'auth_error' }));
+        ws.close();
+    }
+    return;
+}
             if (!ws.userData) {
                 ws.close();
                 return;
