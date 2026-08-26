@@ -627,16 +627,21 @@
         @media (max-width: 768px) {
             #sidebar { width: 100%; position: absolute; z-index: 100; height: 100%; transform: translateX(-100%); transition: transform 0.3s; }
             #sidebar.open { transform: translateX(0); }
-            #menu-toggle { display: block !important; }
-        }
-        #menu-toggle { display: none; background: transparent; border: none; color: #fff; font-size: 24px; cursor: pointer; }
-    </style>        /* === ПРИНУДИТЕЛЬНЫЙ ДИЗАЙН ЧАТА TELEGRAM (ПЕРЕБИВАЕТ ВСЁ) === */
-        #main-chat {
-            background: #e5ddd5 !important; /* Классический светло-серый фон Telegram */
-        }
-        #messages {
-            background: transparent !important;
-        }
+                   #menu-toggle { display: block !important; }
+    }
+    #menu-toggle { display: none; background: transparent; border: none; color: #fff; font-size: 24px; cursor: pointer; }
+
+    /* === ПРИНУДИТЕЛЬНЫЙ ДИЗАЙН ЧАТА TELEGRAM (ПЕРЕБИВАЕТ ВСЁ) === */
+    #main-chat { background: #e5ddd5 !important; }
+    #messages { background: transparent !important; }
+    .message:not(.own) { background: #ffffff !important; color: #000000 !important; box-shadow: 0 1px 2px rgba(0,0,0,0.1) !important; }
+    .message.own { background: #eeffde !important; color: #000000 !important; }
+    #chat-header { background: #ffffff !important; border-bottom: 1px solid #dfe1e5 !important; }
+    #chat-header h3, #chat-header #chat-info, #chat-header button { color: #000000 !important; }
+    #input-area { background: #ffffff !important; border-top: 1px solid #dfe1e5 !important; }
+    #message-input { background: #ffffff !important; color: #000000 !important; border: 1px solid #dfe1e5 !important; }
+</style>
+</head>
         
         /* Входящие сообщения - белые */
         .message:not(.own) {
