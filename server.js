@@ -22,10 +22,13 @@ mongoose.connect(MONGODB_URI)
 
 // Модели
 const userSchema = new mongoose.Schema({
-    username: { type: String, required: true, unique: true },
-    passwordHash: { type: String, required: true },
-    publicKey: { type: String, default: '' },
-    lastSeen: { type: Date, default: Date.now }
+    username: String,
+    password: String,
+    email: String, // Добавляем email для поиска
+    firebaseUid: String, // Firebase UID
+    friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // Список друзей
+    friendRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // Запросы в друзья
+    lastSeen: Date
 });
 const User = mongoose.model('User', userSchema);
 
@@ -102,7 +105,73 @@ app.post('/api/login', async (req, res) => {
         res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
+// === СИСТЕМА ДРУЗЕЙ ===
 
+// 1. Поиск пользователей по email
+app.post('/api/search-users', async (req, res) => {
+    try {
+        const { email, currentUserId } = req.body;
+        const users = await User.find({ 
+            email: { $regex: email, $options: 'i' },
+            _id: { $ne: currentUserId }
+        }).select('username email').limit(10);
+        res.json({ success: true, users });
+    } catch (e) {
+        res.status(500).json({ success: false, error: 'Ошибка поиска' });
+    }
+});
+
+// 2. Отправить запрос в друзья
+app.post('/api/add-friend', async (req, res) => {
+    try {
+        const { userId, friendId } = req.body;
+        const user = await User.findById(userId);
+        if (user.friends.includes(friendId)) {
+            return res.json({ success: false, error: 'Уже в друзьях' });
+        }
+        await User.findByIdAndUpdate(friendId, { $addToSet: { friendRequests: userId } });
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ success: false, error: 'Ошибка' });
+    }
+});
+
+// 3. Принять запрос в друзья
+app.post('/api/accept-friend', async (req, res) => {
+    try {
+        const { userId, friendId } = req.body;
+        await User.findByIdAndUpdate(userId, {
+            $addToSet: { friends: friendId },
+            $pull: { friendRequests: friendId }
+        });
+        await User.findByIdAndUpdate(friendId, { $addToSet: { friends: userId } });
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ success: false, error: 'Ошибка' });
+    }
+});
+
+// 4. Получить список друзей
+app.post('/api/get-friends', async (req, res) => {
+    try {
+        const { userId } = req.body;
+        const user = await User.findById(userId).populate('friends', 'username email lastSeen');
+        res.json({ success: true, friends: user.friends || [] });
+    } catch (e) {
+        res.status(500).json({ success: false, error: 'Ошибка' });
+    }
+});
+
+// 5. Получить запросы в друзья
+app.post('/api/get-friend-requests', async (req, res) => {
+    try {
+        const { userId } = req.body;
+        const user = await User.findById(userId).populate('friendRequests', 'username email');
+        res.json({ success: true, requests: user.friendRequests || [] });
+    } catch (e) {
+        res.status(500).json({ success: false, error: 'Ошибка' });
+    }
+});
 const users = new Map();
 const rooms = new Map();
 
@@ -131,12 +200,16 @@ wss.on('connection', (ws) => {
                 // Ищем или создаем пользователя в базе
                 let user = await User.findOne({ username: username });
                 if (!user) {
-                    user = new User({
-                        username: username,
-                        password: 'firebase_user', // Специальный маркер
-                        lastSeen: new Date()
-                    });
-                    await user.save();
+user = new User({
+    username: username,
+    email: msg.email || username + '@lumio.app', // Сохраняем email
+    firebaseUid: msg.token,
+    password: 'firebase_user',
+    friends: [],
+    friendRequests: [],
+    lastSeen: new Date()
+});
+                                     await user.save();
                 }
                 userId = user._id.toString(); // Используем MongoDB ID
             } else {
@@ -149,10 +222,13 @@ wss.on('connection', (ws) => {
         
         await User.findByIdAndUpdate(userId, { lastSeen: new Date() });
         broadcastAll({ type: 'user_online', username: username, userId: userId });
-        
-        const allUsers = await User.find({}, 'username lastSeen').lean();
-        ws.send(JSON.stringify({ type: 'users_list', users: allUsers }));
-        
+       // === ИЗМЕНЕНО: Отправляем только друзей ===
+const currentUser = await User.findById(userId).populate('friends', 'username email lastSeen');
+ws.send(JSON.stringify({ 
+    type: 'users_list', 
+    users: currentUser.friends || [] 
+})); 
+               
         const allRooms = await Room.find({}).lean();
         ws.send(JSON.stringify({ type: 'rooms_list', rooms: allRooms }));
     } catch (e) {

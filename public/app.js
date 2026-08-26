@@ -836,3 +836,110 @@ document.addEventListener('keydown', (e) => {
         });
     }
 });
+// === СИСТЕМА ДРУЗЕЙ ===
+
+function openAddFriendModal() {
+    document.getElementById('add-friend-modal').style.display = 'flex';
+    document.getElementById('search-friend-input').value = '';
+    document.getElementById('search-results').innerHTML = '';
+}
+
+async function searchFriends() {
+    const email = document.getElementById('search-friend-input').value.trim();
+    if (!email) return;
+    
+    try {
+        const res = await fetch('/api/search-users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, currentUserId })
+        });
+        const data = await res.json();
+        
+        const resultsDiv = document.getElementById('search-results');
+        if (data.success && data.users.length > 0) {
+            resultsDiv.innerHTML = data.users.map(u => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #e0e0e0;">
+                    <div>
+                        <div style="font-weight: 500;">${u.username}</div>
+                        <div style="font-size: 12px; color: #999;">${u.email}</div>
+                    </div>
+                    <button onclick="sendFriendRequest('${u._id}')" style="padding: 6px 12px; background: #3390EC; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">Добавить</button>
+                </div>
+            `).join('');
+        } else {
+            resultsDiv.innerHTML = '<p style="color: #999; text-align: center; padding: 10px;">Пользователи не найдены</p>';
+        }
+    } catch (e) {
+        console.error('Ошибка поиска:', e);
+    }
+}
+
+async function sendFriendRequest(friendId) {
+    try {
+        const res = await fetch('/api/add-friend', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: currentUserId, friendId })
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert('Запрос отправлен!');
+            closeModal('add-friend-modal');
+        } else {
+            alert(data.error || 'Ошибка');
+        }
+    } catch (e) {
+        console.error('Ошибка:', e);
+    }
+}
+
+async function loadFriendRequests() {
+    try {
+        const res = await fetch('/api/get-friend-requests', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: currentUserId })
+        });
+        const data = await res.json();
+        
+        const requestsDiv = document.getElementById('friend-requests');
+        if (data.success && data.requests.length > 0) {
+            requestsDiv.innerHTML = '<div class="section-title" style="background: #fff3cd; color: #856404; border-radius: 6px; margin: 8px;">Запросы в друзья</div>' + 
+                data.requests.map(r => `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; margin: 4px 8px; background: #fff3cd; border-radius: 8px;">
+                        <div style="font-weight: 500;">${r.username}</div>
+                        <button onclick="acceptFriend('${r._id}')" style="padding: 6px 12px; background: #4caf50; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">Принять</button>
+                    </div>
+                `).join('');
+        } else {
+            requestsDiv.innerHTML = '';
+        }
+    } catch (e) {
+        console.error('Ошибка загрузки запросов:', e);
+    }
+}
+
+async function acceptFriend(friendId) {
+    try {
+        const res = await fetch('/api/accept-friend', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: currentUserId, friendId })
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert('Друг добавлен!');
+            location.reload(); // Перезагружаем для обновления списка
+        }
+    } catch (e) {
+        console.error('Ошибка:', e);
+    }
+}
+
+// Загружаем запросы при старте чата
+setTimeout(() => {
+    if (typeof currentUserId !== 'undefined' && currentUserId) {
+        loadFriendRequests();
+    }
+}, 2000);

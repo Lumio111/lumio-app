@@ -278,6 +278,22 @@
             </div>
             
             <div id="users-section">
+    <div class="section-title">Друзья</div>
+    <button onclick="openAddFriendModal()" style="width: calc(100% - 16px); margin: 8px; padding: 10px; background: #3390EC; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">+ Добавить друга</button>
+    <div id="friend-requests"></div>
+    <div id="users-list"></div>
+</div>
+
+<!-- Модальное окно добавления друга -->
+<div id="add-friend-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('add-friend-modal')">
+    <div class="modal-content">
+        <button class="modal-close" onclick="closeModal('add-friend-modal')">&times;</button>
+        <div class="modal-title">Добавить друга</div>
+        <input type="email" id="search-friend-input" placeholder="Введите email друга" style="width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #e0e0e0; border-radius: 8px; background: #f5f5f5;">
+        <button onclick="searchFriends()" style="width: 100%; padding: 12px; margin-top: 10px; background: #3390EC; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Найти</button>
+        <div id="search-results" style="margin-top: 15px;"></div>
+    </div>
+</div>
                 <div class="section-title">Пользователи</div>
                 <div id="users-list"></div>
             </div>
