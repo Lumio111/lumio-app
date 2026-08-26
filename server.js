@@ -20,77 +20,77 @@ mongoose.connect(MONGODB_URI)
     .then(() => console.log('✅ MongoDB подключена успешно!'))
     .catch(err => console.error('❌ Ошибка подключения к MongoDB:', err));
 
-// Модели
+// === МОДЕЛИ ===
 const userSchema = new mongoose.Schema({
     username: String,
     password: String,
-    email: String, // Добавляем email для поиска
-    firebaseUid: String, // Firebase UID
-   status: { type: String, default: '' }, // Статус пользователя
-    friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // Список друзей
-    friendRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // Запросы в друзья
+    email: String,
+    firebaseUid: String,
+    status: { type: String, default: '' }, // Статус пользователя
+    friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    friendRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     lastSeen: Date
 });
 const User = mongoose.model('User', userSchema);
 
 const messageSchema = new mongoose.Schema({
-    id: String,
-    roomId: String,
-    from: String,
-    fromName: String,
-    to: String,
-    toName: String,
-    text: String,
-    encrypted: Boolean,
-    isDirect: Boolean,
-    read: { type: Boolean, default: false },
-    timestamp: Number,
-    fileType: String,
-    fileName: String,
-    fileData: String,
-    fileSize: Number,
+    id: String, roomId: String, from: String, fromName: String,
+    to: String, toName: String, text: String, encrypted: Boolean,
+    isDirect: Boolean, read: { type: Boolean, default: false },
+    timestamp: Number, fileType: String, fileName: String,
+    fileData: String, fileSize: Number,
     reactions: [{ userId: String, emoji: String }],
     edited: { type: Boolean, default: false },
     deleted: { type: Boolean, default: false },
     pinned: { type: Boolean, default: false },
-    mentions: [String] // Массив упомянутых userId
+    mentions: [String]
 });
 const Message = mongoose.model('Message', messageSchema);
 
 const roomSchema = new mongoose.Schema({
-    id: String,
-    name: String,
-    description: String,
-    createdBy: String,
-    createdAt: Number,
+    id: String, name: String, description: String,
+    createdBy: String, createdAt: Number,
     isPrivate: { type: Boolean, default: false },
-    pinnedMessageId: String // ID закрепленного сообщения
+    pinnedMessageId: String
 });
 const Room = mongoose.model('Room', roomSchema);
 
-// API
+// === API МАРШРУТЫ ===
+
 app.post('/api/register', async (req, res) => {
     try {
         const { username, password } = req.body;
         if (!username || !password) return res.status(400).json({ error: 'Нужны логин и пароль' });
-        
         const existingUser = await User.findOne({ username });
         if (existingUser) return res.status(400).json({ error: 'Пользователь уже существует' });
-
         const saltRounds = 10;
         const passwordHash = await bcrypt.hash(password, saltRounds);
         const newUser = new User({ username, passwordHash });
         await newUser.save();
-
         const token = jwt.sign({ userId: newUser._id, username: newUser.username }, JWT_SECRET, { expiresIn: '30d' });
         res.json({ success: true, token, username });
     } catch (err) {
         res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
+
+app.post('/api/login', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        const user = await User.findOne({ username });
+        if (!user) return res.status(400).json({ error: 'Неверный логин или пароль' });
+        const isMatch = await bcrypt.compare(password, user.passwordHash); // Исправлено на passwordHash, если он так сохраняется
+        if (!isMatch) return res.status(400).json({ error: 'Неверный логин или пароль' });
+        await User.findByIdAndUpdate(user._id, { lastSeen: new Date() });
+        const token = jwt.sign({ userId: user._id, username: user.username }, JWT_SECRET, { expiresIn: '30d' });
+        res.json({ success: true, token, username });
+    } catch (err) {
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
 // === СИСТЕМА ДРУЗЕЙ И СТАТУСОВ ===
 
-// 1. Поиск пользователей по email
 app.post('/api/search-users', async (req, res) => {
     try {
         const { email, currentUserId } = req.body;
@@ -104,7 +104,6 @@ app.post('/api/search-users', async (req, res) => {
     }
 });
 
-// 2. Отправить запрос в друзья
 app.post('/api/add-friend', async (req, res) => {
     try {
         const { userId, friendId } = req.body;
@@ -117,7 +116,6 @@ app.post('/api/add-friend', async (req, res) => {
     }
 });
 
-// 3. Принять запрос в друзья
 app.post('/api/accept-friend', async (req, res) => {
     try {
         const { userId, friendId } = req.body;
@@ -129,7 +127,6 @@ app.post('/api/accept-friend', async (req, res) => {
     }
 });
 
-// 4. Получить запросы в друзья
 app.post('/api/get-friend-requests', async (req, res) => {
     try {
         const { userId } = req.body;
@@ -140,7 +137,6 @@ app.post('/api/get-friend-requests', async (req, res) => {
     }
 });
 
-// 5. Обновление статуса пользователя
 app.post('/api/update-status', async (req, res) => {
     try {
         const { userId, status } = req.body;
@@ -150,91 +146,8 @@ app.post('/api/update-status', async (req, res) => {
         res.status(500).json({ success: false, error: 'Ошибка' });
     }
 });
-const users = new Map();
-app.post('/api/login', async (req, res) => {
-    try {
-        const { username, password } = req.body;
-        const user = await User.findOne({ username });
-        
-        if (!user) return res.status(400).json({ error: 'Неверный логин или пароль' });
 
-        const isMatch = await bcrypt.compare(password, user.passwordHash);
-        if (!isMatch) return res.status(400).json({ error: 'Неверный логин или пароль' });
-
-        await User.findByIdAndUpdate(user._id, { lastSeen: new Date() });
-        const token = jwt.sign({ userId: user._id, username: user.username }, JWT_SECRET, { expiresIn: '30d' });
-        res.json({ success: true, token, username });
-    } catch (err) {
-        res.status(500).json({ error: 'Ошибка сервера' });
-    }
-});
-// === СИСТЕМА ДРУЗЕЙ ===
-
-// 1. Поиск пользователей по email
-app.post('/api/search-users', async (req, res) => {
-    try {
-        const { email, currentUserId } = req.body;
-        const users = await User.find({ 
-            email: { $regex: email, $options: 'i' },
-            _id: { $ne: currentUserId }
-        }).select('username email').limit(10);
-        res.json({ success: true, users });
-    } catch (e) {
-        res.status(500).json({ success: false, error: 'Ошибка поиска' });
-    }
-});
-
-// 2. Отправить запрос в друзья
-app.post('/api/add-friend', async (req, res) => {
-    try {
-        const { userId, friendId } = req.body;
-        const user = await User.findById(userId);
-        if (user.friends.includes(friendId)) {
-            return res.json({ success: false, error: 'Уже в друзьях' });
-        }
-        await User.findByIdAndUpdate(friendId, { $addToSet: { friendRequests: userId } });
-        res.json({ success: true });
-    } catch (e) {
-        res.status(500).json({ success: false, error: 'Ошибка' });
-    }
-});
-
-// 3. Принять запрос в друзья
-app.post('/api/accept-friend', async (req, res) => {
-    try {
-        const { userId, friendId } = req.body;
-        await User.findByIdAndUpdate(userId, {
-            $addToSet: { friends: friendId },
-            $pull: { friendRequests: friendId }
-        });
-        await User.findByIdAndUpdate(friendId, { $addToSet: { friends: userId } });
-        res.json({ success: true });
-    } catch (e) {
-        res.status(500).json({ success: false, error: 'Ошибка' });
-    }
-});
-
-// 4. Получить список друзей
-app.post('/api/get-friends', async (req, res) => {
-    try {
-        const { userId } = req.body;
-        const user = await User.findById(userId).populate('friends', 'username email lastSeen');
-        res.json({ success: true, friends: user.friends || [] });
-    } catch (e) {
-        res.status(500).json({ success: false, error: 'Ошибка' });
-    }
-});
-
-// 5. Получить запросы в друзья
-app.post('/api/get-friend-requests', async (req, res) => {
-    try {
-        const { userId } = req.body;
-        const user = await User.findById(userId).populate('friendRequests', 'username email');
-        res.json({ success: true, requests: user.friendRequests || [] });
-    } catch (e) {
-        res.status(500).json({ success: false, error: 'Ошибка' });
-    }
-});
+// === WEBSOCKET ===
 const users = new Map();
 const rooms = new Map();
 
@@ -243,67 +156,63 @@ wss.on('connection', (ws) => {
         try {
             const msg = JSON.parse(data);
             
-         if (msg.type === 'auth') {
-    try {
-        let userId, username;
-        
-        // === НОВАЯ ЛОГИКА: Поддержка Firebase UID ===
-        try {
-            // Пробуем старый способ (JWT)
-            const decoded = jwt.verify(msg.token, JWT_SECRET);
-            userId = decoded.userId;
-            username = decoded.username;
-        } catch (jwtError) {
-            // Если JWT не сработал, проверяем, это Firebase UID
-            if (msg.token && msg.token.length > 20) {
-                // Это Firebase UID! Используем его как userId
-                userId = msg.token;
-                username = msg.token.substring(0, 10); // Берем первые 10 символов как имя
-                
-                // Ищем или создаем пользователя в базе
-                let user = await User.findOne({ username: username });
-                if (!user) {
-user = new User({
-    username: username,
-    email: msg.email || username + '@lumio.app', // Сохраняем email
-    firebaseUid: msg.token,
-    password: 'firebase_user',
-    friends: [],
-    friendRequests: [],
-    lastSeen: new Date()
-});
-                                     await user.save();
+            if (msg.type === 'auth') {
+                try {
+                    let userId, username;
+                    
+                    try {
+                        const decoded = jwt.verify(msg.token, JWT_SECRET);
+                        userId = decoded.userId;
+                        username = decoded.username;
+                    } catch (jwtError) {
+                        if (msg.token && msg.token.length > 20) {
+                            userId = msg.token;
+                            username = msg.username || msg.token.substring(0, 10);
+                            
+                            let user = await User.findOne({ firebaseUid: msg.token });
+                            if (!user) {
+                                user = new User({
+                                    username: username,
+                                    email: msg.username || (username + '@lumio.app'),
+                                    firebaseUid: msg.token,
+                                    password: 'firebase_user',
+                                    status: '',
+                                    friends: [],
+                                    friendRequests: [],
+                                    lastSeen: new Date()
+                                });
+                                await user.save();
+                            }
+                            userId = user._id.toString();
+                            username = user.username;
+                        } else {
+                            throw new Error('Invalid token');
+                        }
+                    }
+                    
+                    ws.userData = { userId: userId, username: username };
+                    ws.send(JSON.stringify({ type: 'auth_success', username: username, userId: userId }));
+                    
+                    await User.findByIdAndUpdate(userId, { lastSeen: new Date() });
+                    broadcastAll({ type: 'user_online', username: username, userId: userId });
+                    
+                    // ОТПРАВЛЯЕМ ТОЛЬКО ДРУЗЕЙ С ИХ СТАТУСАМИ
+                    const currentUser = await User.findById(userId).populate('friends', 'username email status lastSeen');
+                    ws.send(JSON.stringify({ 
+                        type: 'users_list', 
+                        users: currentUser.friends || [] 
+                    }));
+                    
+                    const allRooms = await Room.find({}).lean();
+                    ws.send(JSON.stringify({ type: 'rooms_list', rooms: allRooms }));
+                } catch (e) {
+                    console.error('Auth error:', e);
+                    ws.send(JSON.stringify({ type: 'auth_error' }));
+                    ws.close();
                 }
-                userId = user._id.toString(); // Используем MongoDB ID
-            } else {
-                throw new Error('Invalid token');
+                return;
             }
-        }
-        
-        ws.userData = { userId: userId, username: username };
-        ws.send(JSON.stringify({ type: 'auth_success', username: username, userId: userId }));
-        
-        await User.findByIdAndUpdate(userId, { lastSeen: new Date() });
-        broadcastAll({ type: 'user_online', username: username, userId: userId });
-       // === ИЗМЕНЕНО: Отправляем только друзей ===
-const currentUser = await User.findById(userId).populate('friends', 'username email lastSeen');
-ws.send(JSON.stringify({ 
-    type: 'users_list', 
-    users: currentUser.friends || [] 
-})); 
-               
-       const currentUser = await User.findById(userId).populate('friends', 'username email status lastSeen');
-ws.send(JSON.stringify({ 
-    type: 'users_list', 
-    users: currentUser.friends || [] 
-})); 
-    } catch (e) {
-        console.error('Auth error:', e);
-        ws.send(JSON.stringify({ type: 'auth_error' }));
-        ws.close();
-    }
-    return;
-}
+
             if (!ws.userData) {
                 ws.close();
                 return;
@@ -340,52 +249,34 @@ async function handleMessage(ws, msg) {
             const history = await Message.find({ roomId: roomId, isDirect: { $ne: true }, deleted: { $ne: true } }).sort({ timestamp: 1 }).limit(50).lean();
             ws.send(JSON.stringify({ type: 'history', messages: history }));
             
-            // Отправляем закрепленное сообщение если есть
             const room = await Room.findOne({ id: roomId }).lean();
             if (room && room.pinnedMessageId) {
                 const pinnedMsg = await Message.findOne({ id: room.pinnedMessageId }).lean();
-                if (pinnedMsg) {
-                    ws.send(JSON.stringify({ type: 'pinned_message', message: pinnedMsg }));
-                }
+                if (pinnedMsg) ws.send(JSON.stringify({ type: 'pinned_message', message: pinnedMsg }));
             }
             break;
             
         case 'chat_message':
-            // Парсим упоминания @username
             const mentionRegex = /@(\w+)/g;
             const mentions = [];
             let match;
             while ((match = mentionRegex.exec(msg.text)) !== null) {
                 const mentionedUser = await User.findOne({ username: match[1] });
-                if (mentionedUser) {
-                    mentions.push(mentionedUser._id.toString());
-                }
+                if (mentionedUser) mentions.push(mentionedUser._id.toString());
             }
             
             const chatMsg = {
-                id: uuidv4(),
-                from: user.userId,
-                fromName: user.username,
-                text: msg.text || '',
-                encrypted: msg.encrypted || false,
-                timestamp: Date.now(),
-                roomId: ws.roomId,
-                isDirect: false,
-                fileType: msg.fileType || null,
-                fileName: msg.fileName || null,
-                fileData: msg.fileData || null,
-                fileSize: msg.fileSize || null,
-                reactions: [],
-                edited: false,
-                deleted: false,
-                pinned: false,
-                mentions: mentions
+                id: uuidv4(), from: user.userId, fromName: user.username,
+                text: msg.text || '', encrypted: msg.encrypted || false,
+                timestamp: Date.now(), roomId: ws.roomId, isDirect: false,
+                fileType: msg.fileType || null, fileName: msg.fileName || null,
+                fileData: msg.fileData || null, fileSize: msg.fileSize || null,
+                reactions: [], edited: false, deleted: false, pinned: false, mentions: mentions
             };
             const newMessage = new Message(chatMsg);
             await newMessage.save();
             broadcast(ws.roomId, { type: 'chat_message', message: chatMsg });
             
-            // Уведомляем упомянутых пользователей
             mentions.forEach(mentionedUserId => {
                 const mentionedWs = Array.from(users.keys()).find(w => w.userData && w.userData.userId === mentionedUserId);
                 if (mentionedWs && mentionedWs.readyState === 1) {
@@ -399,25 +290,12 @@ async function handleMessage(ws, msg) {
             if (!targetUser) return;
             
             const dmMsg = {
-                id: uuidv4(),
-                from: user.userId,
-                fromName: user.username,
-                to: msg.toUserId,
-                toName: targetUser.username,
-                text: msg.text || '',
-                encrypted: msg.encrypted || false,
-                timestamp: Date.now(),
-                isDirect: true,
-                read: false,
-                fileType: msg.fileType || null,
-                fileName: msg.fileName || null,
-                fileData: msg.fileData || null,
-                fileSize: msg.fileSize || null,
-                reactions: [],
-                edited: false,
-                deleted: false,
-                pinned: false,
-                mentions: []
+                id: uuidv4(), from: user.userId, fromName: user.username,
+                to: msg.toUserId, toName: targetUser.username, text: msg.text || '',
+                encrypted: msg.encrypted || false, timestamp: Date.now(), isDirect: true, read: false,
+                fileType: msg.fileType || null, fileName: msg.fileName || null,
+                fileData: msg.fileData || null, fileSize: msg.fileSize || null,
+                reactions: [], edited: false, deleted: false, pinned: false, mentions: []
             };
             const newDm = new Message(dmMsg);
             await newDm.save();
@@ -426,7 +304,6 @@ async function handleMessage(ws, msg) {
             if (targetWs && targetWs.readyState === 1) {
                 targetWs.send(JSON.stringify({ type: 'new_dm', message: dmMsg }));
             }
-            
             ws.send(JSON.stringify({ type: 'dm_sent', message: dmMsg }));
             break;
             
@@ -436,18 +313,11 @@ async function handleMessage(ws, msg) {
             if (!otherUser) return;
             
             const dmHistory = await Message.find({
-                isDirect: true,
-                deleted: { $ne: true },
-                $or: [
-                    { from: user.userId, to: otherUserId },
-                    { from: otherUserId, to: user.userId }
-                ]
+                isDirect: true, deleted: { $ne: true },
+                $or: [{ from: user.userId, to: otherUserId }, { from: otherUserId, to: user.userId }]
             }).sort({ timestamp: 1 }).limit(100).lean();
             
-            await Message.updateMany(
-                { from: otherUserId, to: user.userId, read: false },
-                { read: true }
-            );
+            await Message.updateMany({ from: otherUserId, to: user.userId, read: false }, { read: true });
             
             ws.send(JSON.stringify({ 
                 type: 'dm_history', 
@@ -459,7 +329,6 @@ async function handleMessage(ws, msg) {
         case 'add_reaction':
             const reactionMsg = await Message.findById(msg.messageId);
             if (!reactionMsg) return;
-            
             const existingReaction = reactionMsg.reactions.find(r => r.userId === user.userId && r.emoji === msg.emoji);
             if (existingReaction) {
                 reactionMsg.reactions = reactionMsg.reactions.filter(r => !(r.userId === user.userId && r.emoji === msg.emoji));
@@ -467,7 +336,6 @@ async function handleMessage(ws, msg) {
                 reactionMsg.reactions.push({ userId: user.userId, emoji: msg.emoji });
             }
             await reactionMsg.save();
-            
             if (reactionMsg.isDirect) {
                 const dmTarget = Array.from(users.keys()).find(w => w.userData && w.userData.userId === reactionMsg.from);
                 if (dmTarget) dmTarget.send(JSON.stringify({ type: 'reaction_update', messageId: msg.messageId, reactions: reactionMsg.reactions }));
@@ -479,11 +347,9 @@ async function handleMessage(ws, msg) {
         case 'edit_message':
             const editMsg = await Message.findById(msg.messageId);
             if (!editMsg || editMsg.from !== user.userId) return;
-            
             editMsg.text = msg.newText;
             editMsg.edited = true;
             await editMsg.save();
-            
             if (editMsg.isDirect) {
                 const editTarget = Array.from(users.keys()).find(w => w.userData && w.userData.userId === editMsg.to);
                 if (editTarget) editTarget.send(JSON.stringify({ type: 'message_edited', messageId: msg.messageId, newText: msg.newText }));
@@ -496,10 +362,8 @@ async function handleMessage(ws, msg) {
         case 'delete_message':
             const deleteMsg = await Message.findById(msg.messageId);
             if (!deleteMsg || deleteMsg.from !== user.userId) return;
-            
             deleteMsg.deleted = true;
             await deleteMsg.save();
-            
             if (deleteMsg.isDirect) {
                 const deleteTarget = Array.from(users.keys()).find(w => w.userData && w.userData.userId === deleteMsg.to);
                 if (deleteTarget) deleteTarget.send(JSON.stringify({ type: 'message_deleted', messageId: msg.messageId }));
@@ -512,13 +376,11 @@ async function handleMessage(ws, msg) {
         case 'pin_message':
             const pinMsg = await Message.findById(msg.messageId);
             if (!pinMsg) return;
-            
             const roomToPin = await Room.findOne({ id: pinMsg.roomId });
             if (roomToPin) {
                 roomToPin.pinnedMessageId = pinMsg.id;
                 await roomToPin.save();
             }
-            
             broadcast(pinMsg.roomId, { type: 'message_pinned', message: pinMsg });
             break;
         
@@ -533,37 +395,26 @@ async function handleMessage(ws, msg) {
         
         case 'create_room':
             const newRoom = new Room({
-                id: uuidv4(),
-                name: msg.name,
-                description: msg.description || '',
-                createdBy: user.userId,
-                createdAt: Date.now(),
-                isPrivate: msg.isPrivate || false
+                id: uuidv4(), name: msg.name, description: msg.description || '',
+                createdBy: user.userId, createdAt: Date.now(), isPrivate: msg.isPrivate || false
             });
             await newRoom.save();
-            
-            const allRooms = await Room.find({}).lean();
-            broadcastAll({ type: 'rooms_list', rooms: allRooms });
+            const allRoomsList = await Room.find({}).lean();
+            broadcastAll({ type: 'rooms_list', rooms: allRoomsList });
             break;
         
         case 'search_messages':
             const searchResults = await Message.find({
-                roomId: ws.roomId,
-                text: { $regex: msg.query, $options: 'i' },
-                deleted: { $ne: true }
+                roomId: ws.roomId, text: { $regex: msg.query, $options: 'i' }, deleted: { $ne: true }
             }).limit(20).lean();
             ws.send(JSON.stringify({ type: 'search_results', messages: searchResults }));
             break;
         
         case 'export_chat':
-            const exportMessages = await Message.find({
-                roomId: ws.roomId,
-                deleted: { $ne: true }
-            }).sort({ timestamp: 1 }).lean();
+            const exportMessages = await Message.find({ roomId: ws.roomId, deleted: { $ne: true } }).sort({ timestamp: 1 }).lean();
             ws.send(JSON.stringify({ type: 'chat_export', messages: exportMessages }));
             break;
         
-        // Индикатор "печатает..."
         case 'typing_start':
             broadcast(ws.roomId, { type: 'user_typing', userId: user.userId, username: user.username }, ws);
             break;
@@ -572,16 +423,10 @@ async function handleMessage(ws, msg) {
             broadcast(ws.roomId, { type: 'user_stop_typing', userId: user.userId }, ws);
             break;
         
-        // WebRTC для видеозвонков
         case 'call_request':
             const callee = Array.from(users.keys()).find(w => w.userData && w.userData.userId === msg.targetId);
             if (callee) {
-                callee.send(JSON.stringify({ 
-                    type: 'incoming_call', 
-                    fromId: user.userId, 
-                    fromName: user.username,
-                    callType: msg.callType || 'video'
-                }));
+                callee.send(JSON.stringify({ type: 'incoming_call', fromId: user.userId, fromName: user.username, callType: msg.callType || 'video' }));
             }
             break;
         
@@ -589,18 +434,14 @@ async function handleMessage(ws, msg) {
         case 'call_reject':
         case 'call_end':
             const peer = Array.from(users.keys()).find(w => w.userData && w.userData.userId === msg.targetId);
-            if (peer) {
-                peer.send(JSON.stringify({ ...msg, fromId: user.userId }));
-            }
+            if (peer) peer.send(JSON.stringify({ ...msg, fromId: user.userId }));
             break;
         
         case 'webrtc_offer':
         case 'webrtc_answer':
         case 'webrtc_ice':
             const target = Array.from(users.keys()).find(w => w.userData && w.userData.userId === msg.targetId);
-            if (target) {
-                target.send(JSON.stringify({ ...msg, fromId: user.userId }));
-            }
+            if (target) target.send(JSON.stringify({ ...msg, fromId: user.userId }));
             break;
     }
 }
@@ -623,12 +464,10 @@ function broadcastAll(data) {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log('');
     console.log('========================================');
-    console.log('  LUMIO ULTIMATE SERVER (MEGA UPDATE)');
+    console.log('  LUMIO ULTIMATE SERVER (CLEAN BUILD)');
     console.log('========================================');
     console.log('  HTTP: http://localhost:' + PORT);
     console.log('  WS:   ws://localhost:' + PORT);
     console.log('========================================');
-    console.log('');
 });
