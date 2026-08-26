@@ -130,49 +130,7 @@ document.getElementById('google-register').addEventListener('click', async () =>
   }
 });
 // === КОНЕЦ FIREBASE AUTHENTICATION ===
-    e.preventDefault();
-    const errorMsg = document.getElementById('login-error');
-    errorMsg.textContent = 'Вход...';
-    try {
-        const res = await fetch('/api/login', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: document.getElementById('login-username').value, password: document.getElementById('login-password').value })
-        });
-        const data = await res.json();
-        if (data.success) {
-            localStorage.setItem('lumio_token', data.token);
-            localStorage.setItem('lumio_username', data.username);
-            currentUsername = data.username;
-            document.getElementById('auth-overlay').style.display = 'none';
-            document.getElementById('chat-app').style.display = 'flex';
-            requestNotificationPermission();
-            connectWebSocket(data.token);
-        } else { errorMsg.textContent = data.error || 'Ошибка входа'; }
-    } catch (err) { errorMsg.textContent = 'Ошибка сети'; }
-});
-
-document.getElementById('register-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const errorMsg = document.getElementById('reg-error');
-    errorMsg.textContent = 'Регистрация...';
-    try {
-        const res = await fetch('/api/register', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: document.getElementById('reg-username').value, password: document.getElementById('reg-password').value })
-        });
-        const data = await res.json();
-        if (data.success) {
-            localStorage.setItem('lumio_token', data.token);
-            localStorage.setItem('lumio_username', data.username);
-            currentUsername = data.username;
-            document.getElementById('auth-overlay').style.display = 'none';
-            document.getElementById('chat-app').style.display = 'flex';
-            requestNotificationPermission();
-            connectWebSocket(data.token);
-        } else { errorMsg.textContent = data.error || 'Ошибка регистрации'; }
-    } catch (err) { errorMsg.textContent = 'Ошибка сети'; }
-});
-
+    
 function logout() {
     localStorage.removeItem('lumio_token');
     localStorage.removeItem('lumio_username');
