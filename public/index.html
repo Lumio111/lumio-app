@@ -257,16 +257,16 @@
     <!-- Основное приложение -->
     <div id="chat-app">
         <div id="sidebar">
-            <div id="sidebar-header">
-                <h3>Lumio</h3>
-                <div>
-                    <button id="support-btn" onclick="openModal('support-modal')">Premium</button>
-                    <button id="theme-toggle" onclick="toggleTheme()">Тема</button>
-<button onclick="openStatusModal()" style="background: transparent; border: 1px solid #e0e0e0; color: #666; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; margin-left: 8px;">Статус</button>
-                    <button id="logout-btn" onclick="logout()">Выйти</button>
-                </div>
-            </div>
-            <div id="chat-modes">
+<div id="sidebar-header">
+    <h3>Lumio</h3>
+    <div>
+        <button onclick="openProfile()" style="background: transparent; border: 1px solid #e0e0e0; color: #666; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px;">Профиль</button>
+        <button onclick="openStatusModal()" style="background: transparent; border: 1px solid #e0e0e0; color: #666; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; margin-left: 8px;">Статус</button>
+        <button id="theme-toggle" onclick="toggleTheme()" style="background: transparent; border: 1px solid #e0e0e0; color: #666; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; margin-left: 8px;">Тема</button>
+        <button id="logout-btn" onclick="logout()" style="border-color: #e53935; color: #e53935; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; margin-left: 8px; background: transparent;">Выйти</button>
+    </div>
+</div>
+                      <div id="chat-modes">
                 <button class="mode-btn active" onclick="switchMode('general')">Общий чат</button>
                 <button class="mode-btn" onclick="switchMode('dm')">Личные</button>
                 <button class="mode-btn" onclick="switchMode('rooms')">Комнаты</button>

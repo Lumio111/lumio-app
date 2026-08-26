@@ -26,7 +26,10 @@ const userSchema = new mongoose.Schema({
     password: String,
     email: String,
     firebaseUid: String,
-    status: { type: String, default: '' }, // Статус пользователя
+    status: { type: String, default: '' },
+    avatar: { type: String, default: '' }, // Ссылка или base64 аватарки
+    header: { type: String, default: '' }, // Ссылка или base64 шапки
+    bio: { type: String, default: '' },    // Текст "О себе"
     friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     friendRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     lastSeen: Date
@@ -91,6 +94,34 @@ app.post('/api/login', async (req, res) => {
 
 // === СИСТЕМА ДРУЗЕЙ И СТАТУСОВ ===
 
+// Получить данные профиля пользователя
+app.post('/api/get-profile', async (req, res) => {
+    try {
+        const { userId } = req.body;
+        const user = await User.findById(userId).select('username email status avatar header bio');
+        res.json({ success: true, user });
+    } catch (e) {
+        res.status(500).json({ success: false, error: 'Ошибка' });
+    }
+});
+
+// Обновить данные профиля
+app.post('/api/update-profile', async (req, res) => {
+    try {
+        const { userId, username, status, bio, avatar, header } = req.body;
+        const updateData = {};
+        if (username) updateData.username = username;
+        if (status !== undefined) updateData.status = status;
+        if (bio !== undefined) updateData.bio = bio;
+        if (avatar !== undefined) updateData.avatar = avatar;
+        if (header !== undefined) updateData.header = header;
+        
+        await User.findByIdAndUpdate(userId, updateData);
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ success: false, error: 'Ошибка' });
+    }
+});
 app.post('/api/search-users', async (req, res) => {
     try {
         const { email, currentUserId } = req.body;
