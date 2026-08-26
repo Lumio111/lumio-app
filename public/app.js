@@ -176,17 +176,7 @@ function handleServerMessage(msg) {
             msg.messages.forEach(m => appendMessage(m));
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
             break;
-        case 'chat_message':
-            if ((currentMode === 'general' && currentRoomId === 'general') || (currentMode === 'rooms' && currentRoomId === msg.message.roomId)) {
-                appendMessage(msg.message);
-                document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
-                if (msg.message.from !== currentUserId) {
-                    playNotificationSound();
-                    showBrowserNotification(msg.message.fromName, msg.message.text || '📎 Файл');
-                }
-            }
-            break;
-        case 'dm_history':
+               case 'dm_history':
             currentDmPartner = msg.withUser;
             const dmDiv = document.getElementById('messages');
             dmDiv.innerHTML = '';
@@ -194,17 +184,33 @@ function handleServerMessage(msg) {
             dmDiv.scrollTop = dmDiv.scrollHeight;
             document.getElementById('chat-title').textContent = `💬 ${msg.withUser.username}`;
             document.getElementById('chat-info').textContent = 'Личная переписка';
-            break;
-        case 'new_dm':
-            if (currentMode === 'dm' && currentDmPartner && currentDmPartner.userId === msg.message.from) {
-                appendMessage(msg.message);
-                document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
-            }
-            if (msg.message.from !== currentUserId) {
-                playNotificationSound();
-                showBrowserNotification(msg.message.fromName, msg.message.text || '📎 Файл');
-            }
-            break;
+    case 'chat_message':
+    if ((currentMode === 'general' && currentRoomId === 'general') || (currentMode === 'rooms' && currentRoomId === msg.message.roomId)) {
+        appendMessage(msg.message);
+        document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+        if (msg.message.from !== currentUserId) {
+            playNotificationSound();
+            showBrowserNotification(msg.message.fromName, msg.message.text || 'Файл');
+            updateTabTitle(true); // Добавляем эту строку
+        }
+    } else if (msg.message.from !== currentUserId) {
+        // Если мы НЕ в этом чате, всё равно уведомляем
+        updateTabTitle(true);
+        createNotificationSound();
+    }
+    break;        break;
+
+case 'new_dm':
+    if (currentMode === 'dm' && currentDmPartner && currentDmPartner.userId === msg.message.from) {
+        appendMessage(msg.message);
+        document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+    }
+    if (msg.message.from !== currentUserId) {
+        playNotificationSound();
+        showBrowserNotification(msg.message.fromName, msg.message.text || 'Файл');
+        updateTabTitle(true); // Добавляем эту строку
+    }
+                   break;
         case 'reaction_update': updateReactionsInUI(msg.messageId, msg.reactions); break;
         case 'message_edited': updateMessageTextInUI(msg.messageId, msg.newText); break;
         case 'message_deleted': removeMessageFromUI(msg.messageId); break;
@@ -1094,3 +1100,83 @@ async function saveProfile() {
         alert('Ошибка при сохранении. Возможно, файл слишком большой.');
     }
 }
+// === PUSH-УВЕДОМЛЕНИЯ И СЧЁТЧИК ===
+
+let unreadCount = 0;
+let notificationSound = null;
+
+// Создаём звук уведомления
+function createNotificationSound() {
+    try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
+        oscillator.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.1);
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+        oscillator.start(audioCtx.currentTime);
+        oscillator.stop(audioCtx.currentTime + 0.15);
+    } catch (e) {
+        console.error('Ошибка звука:', e);
+    }
+}
+
+// Обновление заголовка вкладки
+function updateTabTitle(increment = false) {
+    if (increment) {
+        unreadCount++;
+    }
+    
+    if (document.hidden && unreadCount > 0) {
+        document.title = `(${unreadCount}) Новое сообщение | Lumio`;
+    } else {
+        document.title = 'Lumio';
+    }
+}
+
+// Сброс счётчика при фокусе
+window.addEventListener('focus', () => {
+    unreadCount = 0;
+    document.title = 'Lumio';
+});
+
+// Запрос разрешения на уведомления
+function requestNotificationPermission() {
+    if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+    }
+}
+
+// Показать браузерное уведомление
+function showBrowserNotification(title, body) {
+    if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
+        const notification = new Notification(title, {
+            body: body,
+            icon: '/icon-192.png',
+            badge: '/icon-192.png',
+            tag: 'lumio-message'
+        });
+        
+        notification.onclick = () => {
+            window.focus();
+            notification.close();
+        };
+        
+        // Звук уведомления
+        createNotificationSound();
+        
+        // Увеличиваем счётчик
+        updateTabTitle(true);
+    }
+}
+
+// Запрашиваем разрешение при загрузке
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+        requestNotificationPermission();
+    }, 3000);
+});
