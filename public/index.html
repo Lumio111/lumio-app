@@ -213,14 +213,14 @@
 <body>
     <!-- Экран загрузки -->
     <div id="splash-screen">
-        <div class="splash-logo">💬 Lumio</div>
+        <div class="splash-logo">Lumio</div>
         <div class="splash-loader"></div>
     </div>
 
     <!-- Экран авторизации -->
     <div id="auth-overlay">
         <div class="auth-box">
-            <h2>🔐 Lumio</h2>
+            <h2>Lumio</h2>
             <div class="auth-tabs">
                 <button class="tab-btn active" onclick="showTab('login')">Вход</button>
                 <button class="tab-btn" onclick="showTab('register')">Регистрация</button>
@@ -258,10 +258,11 @@
     <div id="chat-app">
         <div id="sidebar">
             <div id="sidebar-header">
-                <h3>💬 Lumio</h3>
+                <h3>Lumio</h3>
                 <div>
-                    <button id="support-btn" onclick="openModal('support-modal')">💎 Premium</button>
-                    <button id="theme-toggle" onclick="toggleTheme()">🌓</button>
+                    <button id="support-btn" onclick="openModal('support-modal')">Premium</button>
+                    <button id="theme-toggle" onclick="toggleTheme()">Тема</button>
+<button onclick="openStatusModal()" style="background: transparent; border: 1px solid #e0e0e0; color: #666; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; margin-left: 8px;">Статус</button>
                     <button id="logout-btn" onclick="logout()">Выйти</button>
                 </div>
             </div>
@@ -283,7 +284,14 @@
     <div id="friend-requests"></div>
     <div id="users-list"></div>
 </div>
-
+<div id="status-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('status-modal')">
+    <div class="modal-content">
+        <button class="modal-close" onclick="closeModal('status-modal')">&times;</button>
+        <div class="modal-title">Ваш статус</div>
+        <input type="text" id="status-input" placeholder="Например: На работе, Играю, Не беспокоить" style="width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #e0e0e0; border-radius: 8px; background: #f5f5f5;">
+        <button onclick="saveStatus()" style="width: 100%; padding: 12px; margin-top: 10px; background: #3390EC; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Сохранить</button>
+    </div>
+</div>
 <!-- Модальное окно добавления друга -->
 <div id="add-friend-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('add-friend-modal')">
     <div class="modal-content">
@@ -307,7 +315,7 @@
                     <div id="chat-info">Все пользователи</div>
                 </div>
                 <div>
-                    <button onclick="toggleSearch()" style="background: transparent; border: 1px solid #e0e0e0; color: #666; padding: 6px 10px; border-radius: 6px; cursor: pointer; margin-right: 5px;">🔍</button>
+                    <button onclick="toggleSearch()" style="background: transparent; border: 1px solid #e0e0e0; color: #666; padding: 6px 10px; border-radius: 6px; cursor: pointer; margin-right: 5px;">Поиск</button>
                 </div>
             </div>
             
@@ -332,11 +340,11 @@
             </div>
             
             <div id="input-area">
-                <button id="emoji-btn" onclick="toggleEmojiPicker()">😊</button>
-                <button id="attach-btn" onclick="document.getElementById('file-input').click()">📎</button>
+                <button id="emoji-btn" onclick="toggleEmojiPicker()">+</button>
+<button id="attach-btn" onclick="document.getElementById('file-input').click()">Файл</button>
                 <input type="file" id="file-input" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.zip,.rar" onchange="handleFileSelect(event)">
                 <input type="text" id="message-input" placeholder="Введите сообщение...">
-                <button id="send-btn">➤</button>
+                <button id="send-btn">→</button>
             </div>
         </div>
     </div>
@@ -345,7 +353,7 @@
     <div id="support-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('support-modal')">
         <div class="modal-content">
             <button class="modal-close" onclick="closeModal('support-modal')">&times;</button>
-            <div class="modal-title">💎 Lumio Premium</div>
+            <div class="modal-title">Lumio Premium</div>
             <div class="modal-text">
                 Поддержите разработчика и получите эксклюзивные возможности:<br>
                 🚫 Отключение рекламы<br>

@@ -943,3 +943,71 @@ setTimeout(() => {
         loadFriendRequests();
     }
 }, 2000);
+// === СТАТУСЫ И "БЫЛ В СЕТИ" ===
+
+function openStatusModal() {
+    document.getElementById('status-modal').style.display = 'flex';
+    document.getElementById('status-input').value = '';
+}
+
+async function saveStatus() {
+    const status = document.getElementById('status-input').value.trim();
+    try {
+        const res = await fetch('/api/update-status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: currentUserId, status })
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert('Статус обновлён!');
+            closeModal('status-modal');
+            // Обновляем список, чтобы увидеть изменения
+            if (typeof loadFriendRequests === 'function') loadFriendRequests();
+        }
+    } catch (e) {
+        console.error('Ошибка:', e);
+    }
+}
+
+function getTimeAgo(timestamp) {
+    const seconds = Math.floor((Date.now() - new Date(timestamp).getTime()) / 1000);
+    if (seconds < 60) return 'только что';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes} мин назад`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} ч назад`;
+    const days = Math.floor(hours / 24);
+    return `${days} дн назад`;
+}
+
+// Обновляем функцию отображения пользователей, чтобы показывать статус
+const originalRenderUsersList = renderUsersList;
+renderUsersList = function() {
+    const list = document.getElementById('users-list');
+    list.innerHTML = '';
+    allUsers.forEach(user => {
+        const isOnline = onlineUsers.has(user._id);
+        const isActive = currentDmPartner && currentDmPartner.userId === user._id;
+        const item = document.createElement('div');
+        item.className = `user-item ${isActive ? 'active' : ''}`;
+        item.style.display = 'flex';
+        item.style.alignItems = 'center';
+        item.style.gap = '12px';
+        item.style.padding = '12px';
+        
+        const lastSeenText = isOnline ? 'В сети' : (user.lastSeen ? `Был(а) ${getTimeAgo(user.lastSeen)}` : 'Не в сети');
+        const statusText = user.status || lastSeenText;
+        const statusColor = isOnline ? '#4caf50' : '#999';
+        
+        item.innerHTML = `
+            <div class="avatar" style="width:42px; height:42px; background:linear-gradient(135deg, #3390EC, #2a7ed8); font-size:18px;">${user.username ? user.username.charAt(0).toUpperCase() : '?'}</div>
+            <div style="flex:1;">
+                <div class="username" style="font-weight:600;">${user.username}</div>
+                <div style="font-size:11px; color:${statusColor}; margin-top:2px;">${statusText}</div>
+            </div>
+        `;
+        item.onclick = () => openDm(user._id, user.username);
+        list.appendChild(item);
+    });
+}

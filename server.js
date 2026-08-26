@@ -26,6 +26,7 @@ const userSchema = new mongoose.Schema({
     password: String,
     email: String, // Добавляем email для поиска
     firebaseUid: String, // Firebase UID
+   status: { type: String, default: '' }, // Статус пользователя
     friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // Список друзей
     friendRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // Запросы в друзья
     lastSeen: Date
@@ -87,7 +88,69 @@ app.post('/api/register', async (req, res) => {
         res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
+// === СИСТЕМА ДРУЗЕЙ И СТАТУСОВ ===
 
+// 1. Поиск пользователей по email
+app.post('/api/search-users', async (req, res) => {
+    try {
+        const { email, currentUserId } = req.body;
+        const users = await User.find({ 
+            email: { $regex: email, $options: 'i' },
+            _id: { $ne: currentUserId }
+        }).select('username email status lastSeen').limit(10);
+        res.json({ success: true, users });
+    } catch (e) {
+        res.status(500).json({ success: false, error: 'Ошибка поиска' });
+    }
+});
+
+// 2. Отправить запрос в друзья
+app.post('/api/add-friend', async (req, res) => {
+    try {
+        const { userId, friendId } = req.body;
+        const user = await User.findById(userId);
+        if (user.friends.includes(friendId)) return res.json({ success: false, error: 'Уже в друзьях' });
+        await User.findByIdAndUpdate(friendId, { $addToSet: { friendRequests: userId } });
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ success: false, error: 'Ошибка' });
+    }
+});
+
+// 3. Принять запрос в друзья
+app.post('/api/accept-friend', async (req, res) => {
+    try {
+        const { userId, friendId } = req.body;
+        await User.findByIdAndUpdate(userId, { $addToSet: { friends: friendId }, $pull: { friendRequests: friendId } });
+        await User.findByIdAndUpdate(friendId, { $addToSet: { friends: userId } });
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ success: false, error: 'Ошибка' });
+    }
+});
+
+// 4. Получить запросы в друзья
+app.post('/api/get-friend-requests', async (req, res) => {
+    try {
+        const { userId } = req.body;
+        const user = await User.findById(userId).populate('friendRequests', 'username email');
+        res.json({ success: true, requests: user.friendRequests || [] });
+    } catch (e) {
+        res.status(500).json({ success: false, error: 'Ошибка' });
+    }
+});
+
+// 5. Обновление статуса пользователя
+app.post('/api/update-status', async (req, res) => {
+    try {
+        const { userId, status } = req.body;
+        await User.findByIdAndUpdate(userId, { status });
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ success: false, error: 'Ошибка' });
+    }
+});
+const users = new Map();
 app.post('/api/login', async (req, res) => {
     try {
         const { username, password } = req.body;
@@ -229,8 +292,11 @@ ws.send(JSON.stringify({
     users: currentUser.friends || [] 
 })); 
                
-        const allRooms = await Room.find({}).lean();
-        ws.send(JSON.stringify({ type: 'rooms_list', rooms: allRooms }));
+       const currentUser = await User.findById(userId).populate('friends', 'username email status lastSeen');
+ws.send(JSON.stringify({ 
+    type: 'users_list', 
+    users: currentUser.friends || [] 
+})); 
     } catch (e) {
         console.error('Auth error:', e);
         ws.send(JSON.stringify({ type: 'auth_error' }));
