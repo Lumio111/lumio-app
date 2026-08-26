@@ -1011,3 +1011,86 @@ renderUsersList = function() {
         list.appendChild(item);
     });
 }
+// === ПРОФИЛЬ ПОЛЬЗОВАТЕЛЯ ===
+
+async function openProfile() {
+    document.getElementById('profile-modal').style.display = 'flex';
+    
+    try {
+        const res = await fetch('/api/get-profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: currentUserId })
+        });
+        const data = await res.json();
+        
+        if (data.success && data.user) {
+            const user = data.user;
+            document.getElementById('profile-username').textContent = user.username || 'Пользователь';
+            document.getElementById('profile-status').textContent = user.status || 'В сети';
+            document.getElementById('profile-bio').value = user.bio || '';
+            
+            const avatarDiv = document.getElementById('profile-avatar-img');
+            if (user.avatar) {
+                avatarDiv.innerHTML = `<img src="${user.avatar}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+            } else {
+                avatarDiv.innerHTML = (user.username ? user.username.charAt(0).toUpperCase() : '?');
+            }
+            
+            const headerDiv = document.getElementById('profile-header-img');
+            if (user.header) {
+                headerDiv.style.background = `url(${user.header}) center/cover no-repeat`;
+            } else {
+                headerDiv.style.background = 'linear-gradient(135deg, #3390EC, #2a7ed8)';
+            }
+        }
+    } catch (e) {
+        console.error('Ошибка загрузки профиля:', e);
+    }
+}
+
+function previewImage(input, type) {
+    const file = input.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        if (type === 'avatar-preview') {
+            document.getElementById('profile-avatar-img').innerHTML = `<img src="${e.target.result}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+        } else if (type === 'header-preview') {
+            document.getElementById('profile-header-img').style.background = `url(${e.target.result}) center/cover no-repeat`;
+        }
+    };
+    reader.readAsDataURL(file);
+}
+
+async function saveProfile() {
+    const bio = document.getElementById('profile-bio').value.trim();
+    const avatarImg = document.querySelector('#profile-avatar-img img');
+    const headerDiv = document.getElementById('profile-header-img');
+    
+    const avatar = avatarImg ? avatarImg.src : '';
+    const header = headerDiv.style.background.includes('url') ? headerDiv.style.background.match(/url\(["']?(.*?)["']?\)/)[1] : '';
+
+    try {
+        const res = await fetch('/api/update-profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                userId: currentUserId, 
+                bio, 
+                avatar: avatar.includes('data:image') ? avatar : '', 
+                header: header || ''
+            })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            alert('Профиль обновлён!');
+            closeModal('profile-modal');
+        }
+    } catch (e) {
+        console.error('Ошибка сохранения:', e);
+        alert('Ошибка при сохранении. Возможно, файл слишком большой.');
+    }
+}
