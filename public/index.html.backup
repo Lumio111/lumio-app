@@ -650,64 +650,25 @@
 
     <div id="auth-overlay">
         <div class="auth-box">
-                              <h2>🔐 Lumio</h2>
+            <h2>🔐 Lumio</h2>
             <div class="auth-tabs">
                 <button class="tab-btn active" onclick="showTab('login')">Вход</button>
                 <button class="tab-btn" onclick="showTab('register')">Регистрация</button>
             </div>
             
-            <!-- ФОРМА ВХОДА -->
             <form id="login-form">
-                <input type="email" id="login-email" placeholder="Ваш Email" required style="width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 6px; background: #1a1a2e; color: #fff;">
-                <input type="password" id="login-password" placeholder="Пароль" required style="width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 6px; background: #1a1a2e; color: #fff;">
-                <button type="submit" style="width: 100%; padding: 12px; margin-top: 15px; background: #e94560; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px;">Войти</button>
-                
-                <div style="text-align: center; margin: 20px 0; color: #888; font-size: 14px;">или</div>
-                
-                <button type="button" id="google-login" style="width: 100%; padding: 12px; background: #fff; color: #333; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 16px;">
-                    <img src="https://www.google.com/favicon.ico" style="width: 20px; height: 20px;">
-                    Войти через Google
-                </button>
-                
-                <p id="login-error" class="error-msg"></p>
-            </form>
-
-            <!-- ФОРМА РЕГИСТРАЦИИ (скрыта по умолчанию) -->
-            <form id="register-form" style="display: none;">
-                <input type="email" id="reg-email" placeholder="Ваш Email" required style="width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 6px; background: #1a1a2e; color: #fff;">
-                <input type="password" id="reg-password" placeholder="Пароль (мин. 6 символов)" required minlength="6" style="width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 6px; background: #1a1a2e; color: #fff;">
-                <button type="submit" style="width: 100%; padding: 12px; margin-top: 15px; background: #e94560; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px;">Зарегистрироваться</button>
-                
-                <div style="text-align: center; margin: 20px 0; color: #888; font-size: 14px;">или</div>
-                
-                <button type="button" id="google-register" style="width: 100%; padding: 12px; background: #fff; color: #333; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 16px;">
-                    <img src="https://www.google.com/favicon.ico" style="width: 20px; height: 20px;">
-                    Регистрация через Google
-                </button>
-                
-                <p id="reg-error" class="error-msg"></p>
-            </form>     
-            
                 <input type="text" id="login-username" placeholder="Имя пользователя" required>
                 <input type="password" id="login-password" placeholder="Пароль" required>
                 <button type="submit">Войти</button>
                 <p id="login-error" class="error-msg"></p>
             </form>
 
-            <form id="login-form">
-  <input type="email" id="login-email" placeholder="Ваш Email" required style="width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 6px; background: #1a1a2e; color: #fff;">
-  <input type="password" id="login-password" placeholder="Пароль" required style="width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 6px; background: #1a1a2e; color: #fff;">
-  <button type="submit" style="width: 100%; padding: 12px; margin-top: 15px; background: #e94560; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px;">Войти</button>
-  
-  <div style="text-align: center; margin: 20px 0; color: #888; font-size: 14px;">или</div>
-  
-  <button type="button" id="google-login" style="width: 100%; padding: 12px; background: #fff; color: #333; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 16px;">
-    <img src="https://www.google.com/favicon.ico" style="width: 20px; height: 20px;">
-    Войти через Google
-  </button>
-  
-  <p id="login-error" class="error-msg" style="color: #ff6b6b; font-size: 14px; margin-top: 10px; min-height: 20px; text-align: center;"></p>
-</form>
+            <form id="register-form" style="display: none;">
+                <input type="text" id="reg-username" placeholder="Придумайте имя" required>
+                <input type="password" id="reg-password" placeholder="Придумайте пароль" required>
+                <button type="submit">Зарегистрироваться</button>
+                <p id="reg-error" class="error-msg"></p>
+            </form>
         </div>
     </div>
 
@@ -805,24 +766,8 @@
         <span class="close">&times;</span>
         <img id="modal-image" src="">
     </div>
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-    <script>
-      const firebaseConfig = {
-        apiKey: "AIzaSyAXUoP_i4NIj4C98ptLDigsEarDJCW9E98",
-        authDomain: "lumio-9deeb.firebaseapp.com",
-        projectId: "lumio-9deeb",
-        storageBucket: "lumio-9deeb.firebasestorage.app",
-        messagingSenderId: "290272248748",
-        appId: "1:290272248748:web:fc0189ad5ad1ef13d9f009",
-        measurementId: "G-V4CP1RTGSN"
-      };
-      firebase.initializeApp(firebaseConfig);
-      const auth = firebase.auth();
-    </script>
-    
-<script src="app.js"></script>   <script>
+
+    <script src="app.js"></script>   <script>
        if ('serviceWorker' in navigator) {
            window.addEventListener('load', () => {
                navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW error:', err));
