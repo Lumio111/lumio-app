@@ -420,6 +420,13 @@ function appendMessage(msg) {
     const time = new Date(msg.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
     let displayText = (msg.text || '').replace(/@(\w+)/g, '<span class="mention">@$1</span>');
     let content = `<div class="meta">${msg.fromName}</div>`;
+// Показываем цитату, если это ответ
+if (msg.replyTo) {
+    content += `<div style="padding: 8px; background: rgba(51, 144, 236, 0.1); border-left: 3px solid #3390EC; border-radius: 4px; margin-bottom: 8px; font-size: 13px; color: #666;">
+        <div style="font-size: 11px; color: #3390EC; font-weight: 600;">Ответ</div>
+        <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${msg.replyText || 'Сообщение'}</div>
+    </div>`;
+}
     if (displayText) content += `<div class="text">${displayText}</div>`;
     if (msg.edited) content += `<div class="edited">(изменено)</div>`;
     if (msg.fileData) {
@@ -438,8 +445,12 @@ function appendMessage(msg) {
         content += '</div>';
     }
     content += `<div class="time">${time}</div>`;
-    content += `<div class="actions"><button class="action-btn" onclick="showReactionPicker('${msg.id}')">😊</button>${isOwn ? `<button class="action-btn" onclick="startEdit('${msg.id}')">✏️</button><button class="action-btn" onclick="pinMessage('${msg.id}')">📌</button><button class="action-btn" onclick="deleteMessage('${msg.id}')">🗑️</button>` : ''}</div>`;
-    msgDiv.innerHTML = content;
+content += `<div class="actions">
+    <button class="action-btn" onclick="showReactionPicker('${msg.id}')" title="Реакция">😊</button>
+    <button class="action-btn" onclick="startReply('${msg.id}', '${msg.fromName}', '${(msg.text || '').replace(/'/g, "\\'").substring(0, 50)}')" title="Ответить">↩️</button>
+    ${isOwn ? `<button class="action-btn" onclick="startEdit('${msg.id}')" title="Редактировать">✏️</button><button class="action-btn" onclick="pinMessage('${msg.id}')" title="Закрепить">📌</button><button class="action-btn" onclick="deleteMessage('${msg.id}')" title="Удалить">🗑️</button>` : ''}
+</div>`;
+     msgDiv.innerHTML = content;
     messagesDiv.appendChild(msgDiv);
 }
 
@@ -1180,3 +1191,61 @@ document.addEventListener('DOMContentLoaded', () => {
         requestNotificationPermission();
     }, 3000);
 });
+// === ОТВЕТ НА СООБЩЕНИЕ (REPLY) ===
+
+let replyToMessage = null; // Объект сообщения, на которое отвечаем
+
+// Функция начала ответа
+function startReply(messageId, username, text) {
+    replyToMessage = { id: messageId, username: username, text: text };
+    
+    // Показываем цитату
+    document.getElementById('reply-quote').style.display = 'block';
+    document.getElementById('reply-username').textContent = username;
+    document.getElementById('reply-text').textContent = text;
+    
+    // Фокусируемся на поле ввода
+    document.getElementById('message-input').focus();
+}
+
+// Функция отмены ответа
+function cancelReply() {
+    replyToMessage = null;
+    document.getElementById('reply-quote').style.display = 'none';
+}
+
+// Обновляем функцию отправки сообщения
+const originalSendMessage = sendMessage;
+sendMessage = function() {
+    const input = document.getElementById('message-input');
+    const text = input.value.trim();
+    if (!text || !ws || ws.readyState !== 1) return;
+    
+    // Если есть ответ
+    if (replyToMessage) {
+        if (currentMode === 'general' || currentMode === 'rooms') {
+            ws.send(JSON.stringify({ 
+                type: 'chat_message', 
+                text: text,
+                replyTo: replyToMessage.id // Отправляем ID оригинального сообщения
+            }));
+        } else if (currentMode === 'dm' && currentDmPartner) {
+            ws.send(JSON.stringify({ 
+                type: 'send_dm', 
+                toUserId: currentDmPartner.userId, 
+                text: text,
+                replyTo: replyToMessage.id
+            }));
+        }
+        
+        // Очищаем
+        input.value = '';
+        cancelReply();
+        ws.send(JSON.stringify({ type: 'typing_stop' }));
+        isTyping = false;
+        return;
+    }
+    
+    // Если нет ответа, используем оригинальную функцию
+    originalSendMessage();
+};

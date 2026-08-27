@@ -46,7 +46,9 @@ const messageSchema = new mongoose.Schema({
     edited: { type: Boolean, default: false },
     deleted: { type: Boolean, default: false },
     pinned: { type: Boolean, default: false },
-    mentions: [String]
+    mentions: [String],
+    replyTo: { type: String, default: null }, // ID оригинального сообщения
+    replyText: { type: String, default: null } // Текст оригинального сообщения
 });
 const Message = mongoose.model('Message', messageSchema);
 
@@ -295,16 +297,31 @@ async function handleMessage(ws, msg) {
                 const mentionedUser = await User.findOne({ username: match[1] });
                 if (mentionedUser) mentions.push(mentionedUser._id.toString());
             }
+// Получаем данные оригинального сообщения, если это ответ
+let replyData = null;
+if (msg.replyTo) {
+    const originalMsg = await Message.findById(msg.replyTo);
+    if (originalMsg) {
+        replyData = {
+            id: originalMsg.id,
+            username: originalMsg.fromName,
+            text: originalMsg.text || 'Файл'
+        };
+    }
+}
+
+const chatMsg = {
+    id: uuidv4(), from: user.userId, fromName: user.username,
+    text: msg.text || '', encrypted: msg.encrypted || false,
+    timestamp: Date.now(), roomId: ws.roomId, isDirect: false,
+    fileType: msg.fileType || null, fileName: msg.fileName || null,
+    fileData: msg.fileData || null, fileSize: msg.fileSize || null,
+    reactions: [], edited: false, deleted: false, pinned: false, mentions: mentions,
+    replyTo: msg.replyTo || null,
+    replyText: replyData ? replyData.text : null
+};
             
-            const chatMsg = {
-                id: uuidv4(), from: user.userId, fromName: user.username,
-                text: msg.text || '', encrypted: msg.encrypted || false,
-                timestamp: Date.now(), roomId: ws.roomId, isDirect: false,
-                fileType: msg.fileType || null, fileName: msg.fileName || null,
-                fileData: msg.fileData || null, fileSize: msg.fileSize || null,
-                reactions: [], edited: false, deleted: false, pinned: false, mentions: mentions
-            };
-            const newMessage = new Message(chatMsg);
+                     const newMessage = new Message(chatMsg);
             await newMessage.save();
             broadcast(ws.roomId, { type: 'chat_message', message: chatMsg });
             
@@ -319,16 +336,30 @@ async function handleMessage(ws, msg) {
         case 'send_dm':
             const targetUser = await User.findById(msg.toUserId);
             if (!targetUser) return;
-            
-            const dmMsg = {
-                id: uuidv4(), from: user.userId, fromName: user.username,
-                to: msg.toUserId, toName: targetUser.username, text: msg.text || '',
-                encrypted: msg.encrypted || false, timestamp: Date.now(), isDirect: true, read: false,
-                fileType: msg.fileType || null, fileName: msg.fileName || null,
-                fileData: msg.fileData || null, fileSize: msg.fileSize || null,
-                reactions: [], edited: false, deleted: false, pinned: false, mentions: []
-            };
-            const newDm = new Message(dmMsg);
+            // Получаем данные оригинального сообщения, если это ответ
+let replyDataDm = null;
+if (msg.replyTo) {
+    const originalMsg = await Message.findById(msg.replyTo);
+    if (originalMsg) {
+        replyDataDm = {
+            id: originalMsg.id,
+            username: originalMsg.fromName,
+            text: originalMsg.text || 'Файл'
+        };
+    }
+}
+
+const dmMsg = {
+    id: uuidv4(), from: user.userId, fromName: user.username,
+    to: msg.toUserId, toName: targetUser.username, text: msg.text || '',
+    encrypted: msg.encrypted || false, timestamp: Date.now(), isDirect: true, read: false,
+    fileType: msg.fileType || null, fileName: msg.fileName || null,
+    fileData: msg.fileData || null, fileSize: msg.fileSize || null,
+    reactions: [], edited: false, deleted: false, pinned: false, mentions: [],
+    replyTo: msg.replyTo || null,
+    replyText: replyDataDm ? replyDataDm.text : null
+};
+                     const newDm = new Message(dmMsg);
             await newDm.save();
             
             const targetWs = Array.from(users.keys()).find(w => w.userData && w.userData.userId === msg.toUserId);
